@@ -1,0 +1,411 @@
+// Prisma Schema for Areep (قريب) - Classifieds Platform
+// Domain: areep.eg
+// Commission rules, Escrow, Real Estate contracts, Internal chat only
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ====================== USERS & AUTH ======================
+model User {
+  id            String    @id @default(cuid())
+  phone         String    @unique // Primary login method (Egypt numbers)
+  email         String?   @unique
+  name          String?
+  avatar        String?
+  bio           String?
+  role          UserRole  @default(USER)
+  isVerified    Boolean   @default(false)
+  isBanned      Boolean   @default(false)
+  rating        Float     @default(0)
+  ratingCount   Int       @default(0)
+  trustBadge    TrustBadge @default(NONE)
+  preferredLang String    @default("ar") // ar | en
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastActiveAt  DateTime  @default(now())
+
+  // Relations
+  ads           Ad[]
+  sentMessages  Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  conversationsAsBuyer Conversation[] @relation("BuyerConversations")
+  conversationsAsSeller Conversation[] @relation("SellerConversations")
+  favorites     Favorite[]
+  reviewsGiven  Review[]  @relation("ReviewsGiven")
+  reviewsReceived Review[] @relation("ReviewsReceived")
+  transactionsAsBuyer Transaction[] @relation("BuyerTransactions")
+  transactionsAsSeller Transaction[] @relation("SellerTransactions")
+  packages      UserPackage[]
+  notifications Notification[]
+  signatures    Signature[]
+
+  @@index([phone])
+  @@index([role])
+}
+
+enum UserRole {
+  USER
+  SELLER_PRO
+  ADMIN
+  LEGAL_CONSULTANT
+  MODERATOR
+}
+
+enum TrustBadge {
+  NONE
+  ACTIVE
+  TRUSTED
+  PRO
+  VERIFIED_LEGAL
+}
+
+// ====================== CATEGORIES (Fixed Order) ======================
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  nameAr      String
+  nameEn      String
+  icon        String?
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  commissionType CommissionType @default(STANDARD)
+  createdAt   DateTime @default(now())
+
+  ads         Ad[]
+
+  @@index([sortOrder])
+  @@index([parentId])
+}
+
+enum CommissionType {
+  STANDARD          // 2% seller only
+  CARS_PARTS        // Cars & Car Parts & Motorcycles & their parts
+  REAL_ESTATE_RENT  // Half month each
+  REAL_ESTATE_SALE  // 2.5% each if escrow, else 2% seller
+}
+
+// ====================== ADS ======================
+model Ad {
+  id            String    @id @default(cuid())
+  titleAr       String
+  titleEn       String?
+  descriptionAr String
+  descriptionEn String?
+  price         Decimal   @db.Decimal(12, 2)
+  currency      String    @default("EGP")
+  condition     ItemCondition @default(USED)
+  status        AdStatus  @default(ACTIVE)
+  isFeatured    Boolean   @default(false)
+  featuredUntil DateTime?
+  views         Int       @default(0)
+  city          String
+  area          String?
+  latitude      Float?
+  longitude     Float?
+  allowEscrow   Boolean   @default(false) // Seller enables Qareeb intermediary
+  images        String[]  // Array of image URLs
+  attributes    Json?     // Flexible specs (year, km, rooms, etc.)
+
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  expiresAt     DateTime?
+
+  // Relations
+  favorites     Favorite[]
+  conversations Conversation[]
+  transactions  Transaction[]
+
+  @@index([categoryId])
+  @@index([userId])
+  @@index([status])
+  @@index([city])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@index([latitude, longitude])
+}
+
+enum ItemCondition {
+  NEW
+  USED
+  REFURBISHED
+}
+
+enum AdStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  SOLD
+  EXPIRED
+  REJECTED
+  DELETED
+}
+
+// ====================== FAVORITES ======================
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  adId      String
+  ad        Ad       @relation(fields: [adId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, adId])
+}
+
+// ====================== CHAT (Internal only - No phone numbers) ======================
+model Conversation {
+  id        String   @id @default(cuid())
+  adId      String
+  ad        Ad       @relation(fields: [adId], references: [id])
+  buyerId   String
+  buyer     User     @relation("BuyerConversations", fields: [buyerId], references: [id])
+  sellerId  String
+  seller    User     @relation("SellerConversations", fields: [sellerId], references: [id])
+  lastMessageAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  messages  Message[]
+
+  @@unique([adId, buyerId])
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId     String
+  receiver       User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content        String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+// ====================== TRANSACTIONS & ESCROW ======================
+model Transaction {
+  id              String   @id @default(cuid())
+  adId            String
+  ad              Ad       @relation(fields: [adId], references: [id])
+  buyerId         String
+  buyer           User     @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          User     @relation("SellerTransactions", fields: [sellerId], references: [id])
+  
+  amount          Decimal  @db.Decimal(12, 2) // Total sale price
+  currency        String   @default("EGP")
+  
+  // Commission calculation (protected)
+  commissionType  CommissionType
+  useEscrow       Boolean  @default(false)
+  sellerCommission Decimal @db.Decimal(12, 2) @default(0)
+  buyerCommission  Decimal @db.Decimal(12, 2) @default(0)
+  platformFee     Decimal  @db.Decimal(12, 2) @default(0) // Total to platform
+  legalFee        Decimal  @db.Decimal(12, 2) @default(0) // Half for legal consultant (real estate)
+  
+  status          TransactionStatus @default(PENDING)
+  
+  // Payment tracking
+  paymobOrderId   String?
+  paymobTransactionId String?
+  paidAt          DateTime?
+  
+  // Escrow flow
+  buyerConfirmedAt DateTime?
+  sellerConfirmedAt DateTime?
+  deliveredAt     DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  // Real estate specific
+  isRealEstate    Boolean  @default(false)
+  contractId      String?
+  contract        Contract? @relation(fields: [contractId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([adId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([paymobOrderId])
+}
+
+enum TransactionStatus {
+  PENDING           // Waiting for payment
+  PAID              // Money received by platform (escrow)
+  DELIVERED         // Buyer confirmed receipt
+  COMPLETED         // Money released to seller
+  CANCELLED
+  DISPUTED
+  REFUNDED
+}
+
+// ====================== REAL ESTATE CONTRACTS ======================
+model Contract {
+  id              String   @id @default(cuid())
+  type            ContractType
+  status          ContractStatus @default(DRAFT)
+  
+  // Parties
+  landlordOrSellerId String
+  tenantOrBuyerId    String
+  
+  // Property details
+  propertyAddress String
+  propertyDetails Json?
+  
+  // Financials
+  rentAmount      Decimal? @db.Decimal(12, 2) // For rent
+  saleAmount      Decimal? @db.Decimal(12, 2) // For sale
+  durationMonths  Int?     // For rent
+  
+  // Signatures (simple: image + OTP)
+  sellerSignatureUrl String?
+  buyerSignatureUrl  String?
+  sellerSignedAt     DateTime?
+  buyerSignedAt      DateTime?
+  sellerOtpVerified  Boolean @default(false)
+  buyerOtpVerified   Boolean @default(false)
+  
+  // Legal consultant
+  legalConsultantId String?
+  legalApprovedAt   DateTime?
+  legalNotes        String?
+  
+  documentUrl     String?  // Final PDF
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions    Transaction[]
+  signatures      Signature[]
+
+  @@index([status])
+  @@index([type])
+}
+
+enum ContractType {
+  RENT
+  SALE
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_SIGNATURES
+  PENDING_LEGAL
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Signature {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  contractId  String
+  contract    Contract @relation(fields: [contractId], references: [id])
+  imageUrl    String
+  otpCode     String?
+  verified    Boolean  @default(false)
+  signedAt    DateTime @default(now())
+
+  @@index([contractId])
+  @@index([userId])
+}
+
+// ====================== PACKAGES & SUBSCRIPTIONS ======================
+model Package {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  nameAr      String
+  nameEn      String
+  price       Decimal  @db.Decimal(10, 2)
+  durationDays Int
+  maxAds      Int?     // null = unlimited
+  featuredAds Int      @default(0)
+  featuredDays Int     @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  features    Json?
+
+  userPackages UserPackage[]
+}
+
+model UserPackage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  packageId   String
+  package     Package  @relation(fields: [packageId], references: [id])
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  adsUsed     Int      @default(0)
+  featuredUsed Int     @default(0)
+  isActive    Boolean  @default(true)
+
+  @@index([userId])
+  @@index([endDate])
+}
+
+// ====================== REVIEWS ======================
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int      // 1-5
+  comment    String?
+  reviewerId String
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId String
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  transactionId String? // Optional link to transaction
+  createdAt  DateTime @default(now())
+
+  @@unique([reviewerId, revieweeId, transactionId])
+  @@index([revieweeId])
+}
+
+// ====================== NOTIFICATIONS ======================
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  titleAr   String
+  titleEn   String?
+  bodyAr    String
+  bodyEn    String?
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}
+
+// ====================== SYSTEM SETTINGS ======================
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+}

@@ -1,0 +1,72 @@
+{
+  "common": {
+    "appName": "Areep",
+    "slogan": "Your shop is near",
+    "addAd": "Post an Ad",
+    "search": "Search",
+    "login": "Login",
+    "home": "Home",
+    "categories": "Categories",
+    "areas": "Areas",
+    "howItWorks": "How it works?",
+    "about": "About Areep",
+    "contact": "Contact us",
+    "seeAll": "See all",
+    "browseAllAds": "Browse all ads",
+    "showNearby": "Show me nearby"
+  },
+  "hero": {
+    "title": "What are you looking for?",
+    "subtitle": "Your shop is near you",
+    "description": "Buy and sell from people around you – no expensive delivery or long trips"
+  },
+  "categories": {
+    "title": "Browse Categories",
+    "cars": "Cars",
+    "carParts": "Car Parts",
+    "motorcycles": "Motorcycles & Tricycles",
+    "motorcycleParts": "Motorcycle Parts",
+    "realEstate": "Real Estate (Sale & Rent)",
+    "mobiles": "Mobiles & Tablets",
+    "electronics": "Home Appliances",
+    "furniture": "Furniture",
+    "fashion": "Fashion & Shoes",
+    "pets": "Pets",
+    "jobs": "Jobs & Services",
+    "other": "Other"
+  },
+  "features": {
+    "safe": {
+      "title": "Safe & Trusted",
+      "desc": "Chat directly with sellers and decide freely"
+    },
+    "nearby": {
+      "title": "Near You",
+      "desc": "Browse ads in your neighborhood and nearby cities"
+    },
+    "noFees": {
+      "title": "No High Costs",
+      "desc": "Save on shipping and transport, earn more"
+    }
+  },
+  "cta": {
+    "title": "Have something to sell?",
+    "desc": "Reach people around you in minutes",
+    "button": "Post your ad now"
+  },
+  "footer": {
+    "about": "About Areep",
+    "how": "How it works?",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "help": "Help",
+    "faq": "FAQ",
+    "safety": "Safety Guide",
+    "contact": "Contact us",
+    "partners": "For Partners",
+    "merchant": "Areep Merchant",
+    "partnerTerms": "Partner Terms",
+    "follow": "Follow us",
+    "copyright": "Areep. All rights reserved"
+  }
+}

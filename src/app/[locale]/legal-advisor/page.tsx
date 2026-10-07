@@ -82,6 +82,31 @@ export default async function LegalAdvisorPage({ params }: Props) {
         </ol>
       </Card>
 
+      <Card title={isRtl ? "فين المستشار وكيف يرد؟" : "Where is the advisor?"}>
+        <ul className="list-disc pe-5 space-y-2 text-sm">
+          <li>
+            {isRtl
+              ? "المستشار حساب على المنصة بدور LEGAL_CONSULTANT (مستشار معتمد)."
+              : "Advisor is a platform account with LEGAL_CONSULTANT role."}
+          </li>
+          <li>
+            {isRtl
+              ? "بعد ما المستشير يفتح استشارة، الطلب يظهر في «لوحة المستشار»."
+              : "New requests appear in the Advisor Inbox."}
+          </li>
+          <li>
+            {isRtl
+              ? "المستشار يفتح: /ar/legal-advisor/inbox ويرد من هناك."
+              : "Advisor opens /ar/legal-advisor/inbox and replies there."}
+          </li>
+          <li>
+            {isRtl
+              ? "العمولة 5% تُحسب وتُحفظ مع كل استشارة عند تحديد الأتعاب (2.5% + 2.5%)."
+              : "5% fee is stored on each consultation when fee is set."}
+          </li>
+        </ul>
+      </Card>
+
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
         <Link
           href={`/${locale}/legal-advisor/chat`}
@@ -89,6 +114,12 @@ export default async function LegalAdvisorPage({ params }: Props) {
         >
           <MessageCircle size={18} />
           {isRtl ? "ابدأ محادثة مع مستشار" : "Start chat with advisor"}
+        </Link>
+        <Link
+          href={`/${locale}/legal-advisor/inbox`}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-emerald-300 text-emerald-800 font-semibold hover:bg-emerald-50"
+        >
+          {isRtl ? "لوحة المستشار (للرد)" : "Advisor inbox"}
         </Link>
         <Link
           href={`/${locale}/safety`}

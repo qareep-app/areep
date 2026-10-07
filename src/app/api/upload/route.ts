@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 
 /**
  * POST /api/upload
- * Converts image to base64 data-URL and returns it.
- * Stored in DB with the ad — works locally AND on Vercel (no disk).
- * Max 2MB per image for practical DB size.
+ * Images + short videos as data-URL (works on Vercel without disk).
+ * Prefer small files: image ≤2MB, video ≤8MB.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -15,18 +14,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
-    if (!allowed.includes(file.type)) {
+    const isImage = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
+    const isVideo = ["video/mp4", "video/webm", "video/quicktime"].includes(file.type)
+
+    if (!isImage && !isVideo) {
       return NextResponse.json(
-        { error: "Only JPEG, PNG, WebP allowed" },
+        { error: "Only JPEG/PNG/WebP images or MP4/WebM videos" },
         { status: 400 }
       )
     }
 
-    // 2MB max (base64 is fine for product photos at this size)
-    if (file.size > 2 * 1024 * 1024) {
+    const max = isVideo ? 8 * 1024 * 1024 : 2 * 1024 * 1024
+    if (file.size > max) {
       return NextResponse.json(
-        { error: "الصورة كبيرة جداً (الحد الأقصى 2 ميجا)" },
+        {
+          error: isVideo
+            ? "الفيديو كبير (الحد الأقصى 8 ميجا)"
+            : "الصورة كبيرة (الحد الأقصى 2 ميجا)",
+        },
         { status: 400 }
       )
     }
@@ -41,6 +46,7 @@ export async function POST(req: NextRequest) {
       success: true,
       url,
       filename: file.name,
+      kind: isVideo ? "video" : "image",
     })
   } catch (error) {
     console.error("Upload error:", error)

@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       allowEscrow,
       condition,
       images,
+      videos,
       userId, // temporary until full auth
     } = body
 
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
         longitude: longitude != null ? Number(longitude) : null,
         allowEscrow: Boolean(allowEscrow),
         images: Array.isArray(images) ? images : [],
+        videos: Array.isArray(videos) ? videos : [],
         categoryId: category.id,
         userId: user.id,
       },

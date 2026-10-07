@@ -113,6 +113,7 @@ model Ad {
   longitude     Float?
   allowEscrow   Boolean   @default(false) // Seller enables Qareeb intermediary
   images        String[]  // Array of image URLs
+  videos        String[]  @default([]) // Array of video URLs
   attributes    Json?     // Flexible specs (year, km, rooms, etc.)
 
   categoryId    String
@@ -430,5 +431,26 @@ model EscrowDeal {
   @@index([adId])
   @@index([sellerId])
   @@index([buyerId])
+  @@index([status])
+}
+
+
+// ====================== LEGAL CONSULTATIONS ======================
+model LegalConsultation {
+  id                String   @id @default(cuid())
+  clientId          String
+  advisorId         String?
+  topic             String
+  status            String   @default("OPEN") // OPEN | ASSIGNED | IN_PROGRESS | COMPLETED | CANCELLED
+  agreedFee         Decimal? @db.Decimal(12, 2)
+  platformFee       Decimal? @db.Decimal(12, 2) // 5% total
+  clientShare       Decimal? @db.Decimal(12, 2) // 2.5%
+  advisorShare      Decimal? @db.Decimal(12, 2) // 2.5%
+  messages          Json     @default("[]") // [{role,text,at}]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([advisorId])
   @@index([status])
 }

@@ -104,6 +104,20 @@ export default async function AdDetailPage({ params }: Props) {
               </div>
             )}
 
+            {Array.isArray(ad.videos) && ad.videos.length > 0 && (
+              <div className="p-3 space-y-2">
+                {ad.videos.map((src: string, i: number) => (
+                  <video
+                    key={i}
+                    src={src}
+                    controls
+                    playsInline
+                    className="w-full max-h-80 rounded-xl bg-black"
+                  />
+                ))}
+              </div>
+            )}
+
             <div className="p-5 space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>

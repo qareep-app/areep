@@ -44,6 +44,7 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
   const [showMap, setShowMap] = useState(false)
   const [locating, setLocating] = useState(false)
   const [images, setImages] = useState<string[]>([])
+  const [videos, setVideos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -209,6 +210,7 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
           allowEscrow,
           condition: "USED",
           images,
+          videos,
         }),
       })
       const data = await res.json()
@@ -430,6 +432,78 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
           onChange={handleImageUpload}
           disabled={uploading}
         />
+      </div>
+
+
+      {/* Videos */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          {isRtl ? "فيديو (اختياري)" : "Video (optional)"}
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {videos.map((url) => (
+            <div key={url.slice(0, 40)} className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 bg-black">
+              <video src={url} className="w-full h-full object-cover" controls muted playsInline />
+              <button
+                type="button"
+                onClick={() => setVideos((prev) => prev.filter((v) => v !== url))}
+                className="absolute top-1 end-1 bg-black/60 text-white rounded-full p-1"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          {videos.length < 2 && (
+            <label
+              htmlFor="ad-video-input"
+              className="aspect-video rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 flex flex-col items-center justify-center gap-1 text-gray-500 cursor-pointer bg-gray-50 hover:bg-emerald-50"
+            >
+              {uploading ? (
+                <Loader2 size={22} className="animate-spin text-emerald-600" />
+              ) : (
+                <>
+                  <Upload size={22} />
+                  <span className="text-xs font-medium">{isRtl ? "إضافة فيديو" : "Add video"}</span>
+                </>
+              )}
+            </label>
+          )}
+        </div>
+        <input
+          id="ad-video-input"
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime"
+          className="sr-only"
+          disabled={uploading}
+          onChange={async (e) => {
+            const files = e.target.files
+            if (!files?.length) return
+            setUploading(true)
+            setError("")
+            try {
+              for (const file of Array.from(files).slice(0, 2 - videos.length)) {
+                if (file.size > 8 * 1024 * 1024) {
+                  setError(isRtl ? "الفيديو أكبر من 8 ميجا" : "Video over 8MB")
+                  continue
+                }
+                const formData = new FormData()
+                formData.append("file", file)
+                const res = await fetch("/api/upload", { method: "POST", body: formData })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.error || "Upload failed")
+                setVideos((prev) => [...prev, data.url])
+              }
+            } catch (err: any) {
+              setError(err.message || (isRtl ? "فشل رفع الفيديو" : "Video upload failed"))
+            } finally {
+              setUploading(false)
+              e.target.value = ""
+            }
+          }}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          {isRtl ? "MP4 أو WebM — حد أقصى 8 ميجا — فيديوهان كحد أقصى" : "MP4/WebM — max 8MB — up to 2 videos"}
+        </p>
       </div>
 
       {(isCarsOrParts || isRealEstate) && (

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Upload, Shield, Loader2, X, MapPin, Navigation, Map } from "lucide-react"
+import { Upload, Shield, Loader2, X, MapPin, Navigation, Map, Film, ImagePlus } from "lucide-react"
 
 interface AddAdFormProps {
   locale: string
@@ -303,6 +303,126 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
         />
       </div>
 
+{/* Images */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          {isRtl ? "الصور" : "Photos"}
+        </label>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {images.map((url) => (
+            <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => removeImage(url)}
+                className="absolute top-1 end-1 bg-black/60 text-white rounded-full p-1"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          {images.length < 10 && (
+            <label
+              htmlFor="ad-image-input"
+              className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 flex flex-col items-center justify-center gap-1 text-gray-500 cursor-pointer bg-gray-50 hover:bg-emerald-50"
+            >
+              {uploading ? (
+                <Loader2 size={22} className="animate-spin text-emerald-600" />
+              ) : (
+                <>
+                  <ImagePlus size={22} className="text-emerald-600" />
+                  <span className="text-xs font-medium text-emerald-700">{isRtl ? "إضافة صورة" : "Add photo"}</span>
+                </>
+              )}
+            </label>
+          )}
+        </div>
+        <input
+          id="ad-image-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/jpg"
+          multiple
+          className="sr-only"
+          onChange={handleImageUpload}
+          disabled={uploading}
+        />
+      </div>
+
+
+      {/* Videos */}
+      <div>
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Film size={18} className="text-emerald-600" />
+          {isRtl ? "فيديو (اختياري)" : "Video (optional)"}
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {videos.map((url) => (
+            <div key={url.slice(0, 40)} className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 bg-black">
+              <video src={url} className="w-full h-full object-cover" controls muted playsInline />
+              <button
+                type="button"
+                onClick={() => setVideos((prev) => prev.filter((v) => v !== url))}
+                className="absolute top-1 end-1 bg-black/60 text-white rounded-full p-1"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          {videos.length < 2 && (
+            <label
+              htmlFor="ad-video-input"
+              className="min-h-[120px] aspect-video rounded-xl border-2 border-dashed border-emerald-400 hover:border-emerald-600 flex flex-col items-center justify-center gap-2 text-gray-500 cursor-pointer bg-emerald-50/50 hover:bg-emerald-50"
+            >
+              {uploading ? (
+                <Loader2 size={28} className="animate-spin text-emerald-600" />
+              ) : (
+                <>
+                  <Film size={32} className="text-emerald-600" />
+                  <span className="text-sm font-bold text-emerald-700">{isRtl ? "إضافة فيديو" : "Add video"}</span>
+                  <span className="text-[11px] text-gray-500">{isRtl ? "MP4 / WebM حتى 8 ميجا" : "MP4/WebM up to 8MB"}</span>
+                </>
+              )}
+            </label>
+          )}
+        </div>
+        <input
+          id="ad-video-input"
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime"
+          className="sr-only"
+          disabled={uploading}
+          onChange={async (e) => {
+            const files = e.target.files
+            if (!files?.length) return
+            setUploading(true)
+            setError("")
+            try {
+              for (const file of Array.from(files).slice(0, 2 - videos.length)) {
+                if (file.size > 8 * 1024 * 1024) {
+                  setError(isRtl ? "الفيديو أكبر من 8 ميجا" : "Video over 8MB")
+                  continue
+                }
+                const formData = new FormData()
+                formData.append("file", file)
+                const res = await fetch("/api/upload", { method: "POST", body: formData })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.error || "Upload failed")
+                setVideos((prev) => [...prev, data.url])
+              }
+            } catch (err: any) {
+              setError(err.message || (isRtl ? "فشل رفع الفيديو" : "Video upload failed"))
+            } finally {
+              setUploading(false)
+              e.target.value = ""
+            }
+          }}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          {isRtl ? "MP4 أو WebM — حد أقصى 8 ميجا — فيديوهان كحد أقصى" : "MP4/WebM — max 8MB — up to 2 videos"}
+        </p>
+      </div>
+
       {/* Location of the item — not necessarily seller's city */}
       <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-3">
         <div className="flex items-center gap-2 font-semibold text-emerald-900 dark:text-emerald-300">
@@ -388,123 +508,6 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
         )}
       </div>
 
-      {/* Images */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-          {isRtl ? "الصور" : "Photos"}
-        </label>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {images.map((url) => (
-            <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => removeImage(url)}
-                className="absolute top-1 end-1 bg-black/60 text-white rounded-full p-1"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-          {images.length < 10 && (
-            <label
-              htmlFor="ad-image-input"
-              className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 flex flex-col items-center justify-center gap-1 text-gray-500 cursor-pointer bg-gray-50 hover:bg-emerald-50"
-            >
-              {uploading ? (
-                <Loader2 size={22} className="animate-spin text-emerald-600" />
-              ) : (
-                <>
-                  <Upload size={22} />
-                  <span className="text-xs font-medium">{isRtl ? "إضافة صورة" : "Add photo"}</span>
-                </>
-              )}
-            </label>
-          )}
-        </div>
-        <input
-          id="ad-image-input"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/jpg"
-          multiple
-          className="sr-only"
-          onChange={handleImageUpload}
-          disabled={uploading}
-        />
-      </div>
-
-
-      {/* Videos */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-          {isRtl ? "فيديو (اختياري)" : "Video (optional)"}
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {videos.map((url) => (
-            <div key={url.slice(0, 40)} className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 bg-black">
-              <video src={url} className="w-full h-full object-cover" controls muted playsInline />
-              <button
-                type="button"
-                onClick={() => setVideos((prev) => prev.filter((v) => v !== url))}
-                className="absolute top-1 end-1 bg-black/60 text-white rounded-full p-1"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-          {videos.length < 2 && (
-            <label
-              htmlFor="ad-video-input"
-              className="aspect-video rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 flex flex-col items-center justify-center gap-1 text-gray-500 cursor-pointer bg-gray-50 hover:bg-emerald-50"
-            >
-              {uploading ? (
-                <Loader2 size={22} className="animate-spin text-emerald-600" />
-              ) : (
-                <>
-                  <Upload size={22} />
-                  <span className="text-xs font-medium">{isRtl ? "إضافة فيديو" : "Add video"}</span>
-                </>
-              )}
-            </label>
-          )}
-        </div>
-        <input
-          id="ad-video-input"
-          type="file"
-          accept="video/mp4,video/webm,video/quicktime"
-          className="sr-only"
-          disabled={uploading}
-          onChange={async (e) => {
-            const files = e.target.files
-            if (!files?.length) return
-            setUploading(true)
-            setError("")
-            try {
-              for (const file of Array.from(files).slice(0, 2 - videos.length)) {
-                if (file.size > 8 * 1024 * 1024) {
-                  setError(isRtl ? "الفيديو أكبر من 8 ميجا" : "Video over 8MB")
-                  continue
-                }
-                const formData = new FormData()
-                formData.append("file", file)
-                const res = await fetch("/api/upload", { method: "POST", body: formData })
-                const data = await res.json()
-                if (!res.ok) throw new Error(data.error || "Upload failed")
-                setVideos((prev) => [...prev, data.url])
-              }
-            } catch (err: any) {
-              setError(err.message || (isRtl ? "فشل رفع الفيديو" : "Video upload failed"))
-            } finally {
-              setUploading(false)
-              e.target.value = ""
-            }
-          }}
-        />
-        <p className="text-xs text-gray-400 mt-1">
-          {isRtl ? "MP4 أو WebM — حد أقصى 8 ميجا — فيديوهان كحد أقصى" : "MP4/WebM — max 8MB — up to 2 videos"}
-        </p>
-      </div>
 
       {(isCarsOrParts || isRealEstate) && (
         <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">

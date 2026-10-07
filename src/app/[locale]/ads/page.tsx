@@ -1,12 +1,13 @@
 import { setRequestLocale } from "next-intl/server"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
+import CategoryBar from "@/components/CategoryBar"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 
 type Props = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ category?: string; city?: string }>
+  searchParams: Promise<{ category?: string; city?: string; brand?: string; sort?: string }>
 }
 
 export const dynamic = "force-dynamic"
@@ -21,36 +22,52 @@ export default async function AdsPage({ params, searchParams }: Props) {
   let errorMsg = ""
 
   try {
-    // Simple query first - avoid complex filters that may fail
     ads = await prisma.ad.findMany({
       where: { status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 50,
     })
 
-    // Optional filter in memory (safer on free Neon)
     if (sp.category) {
       const cat = await prisma.category.findUnique({ where: { slug: sp.category } })
-      if (cat) {
-        ads = ads.filter((a) => a.categoryId === cat.id)
-      }
+      if (cat) ads = ads.filter((a) => a.categoryId === cat.id)
     }
     if (sp.city) {
       const city = sp.city.toLowerCase()
       ads = ads.filter((a) => (a.city || "").toLowerCase().includes(city))
+    }
+    if (sp.brand) {
+      const brand = sp.brand.toLowerCase()
+      ads = ads.filter((a) => {
+        const t = `${a.titleAr || ""} ${a.titleEn || ""} ${a.descriptionAr || ""}`.toLowerCase()
+        return t.includes(brand)
+      })
+    }
+    if (sp.sort === "new") {
+      ads = [...ads].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
     }
   } catch (e: any) {
     console.error("Ads page DB error:", e)
     errorMsg = e?.message || "DB error"
   }
 
+  const titleExtra = sp.brand
+    ? ` · ${sp.brand.toUpperCase()}`
+    : sp.category
+      ? ` · ${sp.category}`
+      : ""
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" dir={isRtl ? "rtl" : "ltr"}>
       <Header locale={locale} />
+      <CategoryBar locale={locale} />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             {isRtl ? "كل الإعلانات" : "All Ads"}
+            {titleExtra}
           </h1>
 
           {errorMsg && (

@@ -19,9 +19,9 @@ export default async function Page({ params }: Props) {
           </h1>
           <div className="prose prose-gray text-gray-600 leading-relaxed space-y-4">
             {isRtl ? (
-              <><p>قريب منصة إعلانات مبوبة مصرية بتساعدك تبيع وتشتري من الناس اللي حواليك بسهولة وأمان.</p><p>هدفنا نخلي الدكان قريب منك، من غير توصيل غالي ولا مشاوير بعيدة.</p></>
+              <><p>قريب أول وأكبر منصة إعلانات مبوبة مصرية بتساعدك تبيع وتشتري من الناس اللي حواليك بسهولة وأمان.</p><p>هدفنا نخلي الدكان قريب منك، من غير توصيل غالي ولا مشاوير بعيدة.</p></>
             ) : (
-              <><p>Areep is an Egyptian classifieds platform that helps you buy and sell from people nearby easily and safely.</p><p>Our goal is to bring the shop close to you, without expensive delivery or long trips.</p></>
+              <><p>Areep Egypt's first and largest classified ads platform. that helps you buy and sell from people nearby easily and safely.</p><p>Our goal is to bring the shop close to you, without expensive delivery or long trips.</p></>
             )}
           </div>
         </div>

@@ -2,6 +2,9 @@ import Link from "next/link"
 import {
   Car, Wrench, Bike, Settings, Building2, Smartphone,
   Tv, Sofa, Shirt, PawPrint, Briefcase, Package, Home,
+  HandHelping, GraduationCap, Gamepad2, UtensilsCrossed,
+  PartyPopper, Code2, Trees, Palette, Plane, Map,
+  Gem, Search,
 } from "lucide-react"
 
 interface Props {
@@ -22,6 +25,19 @@ const categories = [
   { slug: "fashion", icon: Shirt, nameAr: "أزياء", nameEn: "Fashion", gradient: "from-pink-400 to-fuchsia-600" },
   { slug: "pets", icon: PawPrint, nameAr: "حيوانات", nameEn: "Pets", gradient: "from-lime-400 to-green-600" },
   { slug: "jobs", icon: Briefcase, nameAr: "وظائف", nameEn: "Jobs", gradient: "from-violet-400 to-purple-600" },
+  // extra categories before "other"
+  { slug: "services", icon: HandHelping, nameAr: "خدمات", nameEn: "Services", gradient: "from-sky-400 to-blue-500" },
+  { slug: "training", icon: GraduationCap, nameAr: "تدريب", nameEn: "Training", gradient: "from-amber-400 to-orange-500" },
+  { slug: "games", icon: Gamepad2, nameAr: "ألعاب", nameEn: "Games", gradient: "from-purple-400 to-violet-600" },
+  { slug: "food", icon: UtensilsCrossed, nameAr: "طعام", nameEn: "Food", gradient: "from-red-400 to-rose-500" },
+  { slug: "events", icon: PartyPopper, nameAr: "مناسبات", nameEn: "Events", gradient: "from-pink-400 to-rose-500" },
+  { slug: "programming", icon: Code2, nameAr: "برمجة", nameEn: "Programming", gradient: "from-slate-500 to-gray-700" },
+  { slug: "gardens", icon: Trees, nameAr: "حدائق", nameEn: "Gardens", gradient: "from-green-400 to-emerald-600" },
+  { slug: "arts", icon: Palette, nameAr: "فنون", nameEn: "Arts", gradient: "from-fuchsia-400 to-purple-500" },
+  { slug: "tourism", icon: Plane, nameAr: "سياحة", nameEn: "Tourism", gradient: "from-cyan-400 to-blue-500" },
+  { slug: "trips", icon: Map, nameAr: "رحلات", nameEn: "Trips", gradient: "from-teal-400 to-cyan-600" },
+  { slug: "antiques", icon: Gem, nameAr: "نوادر", nameEn: "Antiques", gradient: "from-yellow-500 to-amber-600" },
+  { slug: "lost-found", icon: Search, nameAr: "مفقودات", nameEn: "Lost & Found", gradient: "from-gray-400 to-slate-600" },
   { slug: "other", icon: Package, nameAr: "أخرى", nameEn: "Other", gradient: "from-gray-400 to-gray-600" },
 ]
 

@@ -19,13 +19,18 @@ export async function POST(req: NextRequest) {
     if (!amount || amount < 1) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
     }
-    if (!process.env.PAYMOB_API_KEY || !process.env.PAYMOB_INTEGRATION_ID) {
+    if (!process.env.PAYMOB_API_KEY?.trim() && !process.env.PAYMOB_SECRET_KEY?.trim()) {
       return NextResponse.json(
         {
-          error: "Paymob غير مضبوط — أضف PAYMOB_API_KEY و PAYMOB_INTEGRATION_ID في Vercel",
+          error: "Paymob غير مضبوط — أضف PAYMOB_API_KEY و PAYMOB_INTEGRATION_ID",
           demo: true,
-          iframeUrl: null,
         },
+        { status: 503 }
+      )
+    }
+    if (!process.env.PAYMOB_INTEGRATION_ID) {
+      return NextResponse.json(
+        { error: "PAYMOB_INTEGRATION_ID ناقص في Vercel" },
         { status: 503 }
       )
     }
@@ -37,18 +42,12 @@ export async function POST(req: NextRequest) {
       legal: "أتعاب استشارة قانونية",
     }
 
-    const intention = await createPaymobIntention({
+    const result = await createPaymobIntention({
       amount,
       orderId,
       customerName: session?.name || "عميل قريب",
       customerPhone: session?.phone || "01000000000",
-      items: [
-        {
-          name: labels[type] || "Areep payment",
-          amount,
-          quantity: 1,
-        },
-      ],
+      items: [{ name: labels[type] || "Areep", amount, quantity: 1 }],
     })
 
     try {
@@ -60,7 +59,17 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    return NextResponse.json({ ok: true, orderId, intention })
+    const iframeUrl =
+      (result as any).iframeUrl ||
+      (result as any).iframe_url ||
+      null
+
+    return NextResponse.json({
+      ok: true,
+      orderId,
+      iframeUrl,
+      intention: result,
+    })
   } catch (e: any) {
     console.error("paymob create", e)
     return NextResponse.json({ error: e?.message || "Paymob error" }, { status: 500 })

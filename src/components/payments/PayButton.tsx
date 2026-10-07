@@ -44,20 +44,21 @@ export default function PayButton({
 
       // Intention API may return client_secret / payment_keys
       const iframe =
+        data.iframeUrl ||
+        data.intention?.iframeUrl ||
         data.intention?.iframe_url ||
-        data.intention?.client_secret ||
-        data.intention?.payment_keys?.[0]
+        null
 
       if (typeof iframe === "string" && iframe.startsWith("http")) {
         window.location.href = iframe
-      } else if (data.intention) {
-        setMsg(
-          isRtl
-            ? "تم إنشاء طلب الدفع — أكمل من لوحة Paymob / الـ iframe"
-            : "Payment intent created — complete via Paymob"
-        )
-        console.log("Paymob intention", data.intention)
+        return
       }
+      setMsg(
+        isRtl
+          ? data.error || "تم إنشاء الطلب لكن رابط الدفع غير متاح — راجع INTEGRATION_ID و IFRAME_ID"
+          : data.error || "Payment created but no iframe URL"
+      )
+      console.log("Paymob response", data)
     } catch (e: any) {
       setMsg(e.message)
     } finally {

@@ -1,32 +1,41 @@
 import { setRequestLocale } from "next-intl/server"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import PolicyLayout, { Card } from "@/components/PolicyLayout"
 
 type Props = { params: Promise<{ locale: string }> }
 
-export default async function Page({ params }: Props) {
+export default async function ContactPage({ params }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
   const isRtl = locale === "ar"
-
   return (
-    <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <Header locale={locale} />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            {isRtl ? "تواصل معنا" : "Contact us"}
-          </h1>
-          <div className="prose prose-gray text-gray-600 leading-relaxed space-y-4">
-            {isRtl ? (
-              <><p>للاستفسارات والدعم:</p><p>البريد: support@areep.eg</p><p>أو من خلال نموذج الرسائل داخل حسابك.</p></>
-            ) : (
-              <><p>For inquiries and support:</p><p>Email: support@areep.eg</p><p>Or through messages inside your account.</p></>
-            )}
-          </div>
+    <PolicyLayout locale={locale} title={isRtl ? "اتصل بنا" : "Contact us"}>
+      <p className="text-sm text-gray-600 text-center mb-4">
+        {isRtl
+          ? "لأي استفسار أو شكوى أو بلاغ عن إعلان مخالف، تواصل معنا:"
+          : "Questions, complaints, or reports:"}
+      </p>
+      <Card>
+        <div className="space-y-3 text-center">
+          <p>
+            <span className="text-gray-500">{isRtl ? "البريد الإلكتروني: " : "Email: "}</span>
+            <a href="mailto:dokanelbalad@gmail.com" className="text-emerald-700 font-semibold">
+              dokanelbalad@gmail.com
+            </a>
+          </p>
+          <p>
+            <span className="text-gray-500">{isRtl ? "واتساب: " : "WhatsApp: "}</span>
+            <a
+              href="https://wa.me/201027058242"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-700 font-semibold"
+              dir="ltr"
+            >
+              +201027058242
+            </a>
+          </p>
         </div>
-      </main>
-      <Footer locale={locale} />
-    </div>
+      </Card>
+    </PolicyLayout>
   )
 }

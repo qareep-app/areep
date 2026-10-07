@@ -1,6 +1,5 @@
 import { setRequestLocale } from "next-intl/server"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import PolicyLayout, { Card } from "@/components/PolicyLayout"
 
 type Props = { params: Promise<{ locale: string }> }
 
@@ -10,30 +9,27 @@ export default async function FaqPage({ params }: Props) {
   const isRtl = locale === "ar"
   const items = isRtl
     ? [
-        { q: "هل أرقام التليفون تظهر؟", a: "لا. التواصل داخل الشات فقط." },
-        { q: "إيه نظام وسيط قريب؟", a: "حماية فلوس الصفقة للعربيات والعقارات حتى تمام الاستلام." },
-        { q: "كام العمولة؟", a: "2% عادة. السيارات والعقارات 2.5% من كل طرف مع الوسيط." },
+        { q: "إزاي أشتري؟", a: "دوّر على المنتج، افتحه، تقدر تراسل البائع قبل الشراء من صفحة المنتج عبر شات الموقع." },
+        { q: "طرق الدفع إيه؟", a: "الدفع عند الاستلام متاح، والدفع أونلاين بالبطاقة متاح حسب توفّر الخدمة (Paymob)." },
+        { q: "الشحن بكام؟", a: "مصاريف الشحن بيحددها البائع لكل منتج وبتظهر لك بوضوح في صفحة المنتج." },
+        { q: "إزاي أبيع على قريب؟", a: "سجّل كبائع، ارفع مستنداتك، وبعد موافقة الإدارة أضف منتجاتك." },
+        { q: "لقيت إعلان مخالف أو نصب، أعمل إيه؟", a: "بلّغنا فوراً من صفحة «اتصل بنا»، واقرأ نصايح «مركز الأمان»." },
       ]
     : [
-        { q: "Are phone numbers visible?", a: "No. Chat only inside the platform." },
-        { q: "What is Areep Escrow?", a: "Payment protection for cars and real estate until delivery." },
-        { q: "What is the commission?", a: "2% standard. Cars/real estate 2.5% each side with escrow." },
+        { q: "How do I buy?", a: "Browse, open the ad, chat with the seller inside the platform." },
+        { q: "Payment methods?", a: "Cash on delivery and online cards via Paymob when available." },
+        { q: "Shipping cost?", a: "Set by the seller and shown on the ad page." },
+        { q: "How do I sell?", a: "Register as seller, verify, then post after approval." },
+        { q: "Scam listing?", a: "Report via Contact Us and read Safety Center tips." },
       ]
+
   return (
-    <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <Header locale={locale} />
-      <main className="flex-1 max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-8">{isRtl ? "الأسئلة الشائعة" : "FAQ"}</h1>
-        <div className="space-y-4">
-          {items.map((item, i) => (
-            <div key={i} className="border border-gray-100 rounded-xl p-4">
-              <h2 className="font-semibold text-gray-900 mb-1">{item.q}</h2>
-              <p className="text-gray-600 text-sm">{item.a}</p>
-            </div>
-          ))}
-        </div>
-      </main>
-      <Footer locale={locale} />
-    </div>
+    <PolicyLayout locale={locale} title={isRtl ? "الأسئلة الشائعة" : "FAQ"}>
+      {items.map((item, i) => (
+        <Card key={i} title={item.q}>
+          <p>{item.a}</p>
+        </Card>
+      ))}
+    </PolicyLayout>
   )
 }

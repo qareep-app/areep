@@ -30,55 +30,108 @@ export default function Footer({ locale = "ar" }: FooterProps) {
             </p>
           </div>
 
-          {/* Links */}
+          {/* Sellers */}
           <div>
-            <h4 className="font-semibold text-gray-800 mb-3 text-sm">
-              {isRtl ? "قريب" : "Areep"}
+            <h4 className="font-semibold text-emerald-800 mb-3 text-sm">
+              {isRtl ? "للبائعين" : "For sellers"}
             </h4>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href={`/${locale}/about`} className="hover:text-emerald-600">{isRtl ? "عن قريب" : "About"}</Link></li>
-              <li><Link href={`/${locale}/how-it-works`} className="hover:text-emerald-600">{isRtl ? "كيف يعمل؟" : "How it works?"}</Link></li>
-              <li><Link href={`/${locale}/privacy`} className="hover:text-emerald-600">{isRtl ? "سياسة الخصوصية" : "Privacy"}</Link></li>
-              <li><Link href={`/${locale}/terms`} className="hover:text-emerald-600">{isRtl ? "الشروط والأحكام" : "Terms"}</Link></li>
+              <li>
+                <Link href={`/${locale}/merchant`} className="hover:text-emerald-600">
+                  {isRtl ? "سجّل كبائع" : "Register as seller"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/fees`} className="hover:text-emerald-600">
+                  {isRtl ? "العمولة وسداد الرسوم" : "Fees & commission"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/verification`} className="hover:text-emerald-600">
+                  {isRtl ? "توثيق المتجر" : "Store verification"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/discounts`} className="hover:text-emerald-600">
+                  {isRtl ? "نظام الخصم" : "Discounts"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/suspended`} className="hover:text-emerald-600">
+                  {isRtl ? "الحسابات الموقوفة" : "Suspended accounts"}
+                </Link>
+              </li>
             </ul>
           </div>
 
+          {/* Help */}
           <div>
-            <h4 className="font-semibold text-gray-800 mb-3 text-sm">
+            <h4 className="font-semibold text-emerald-800 mb-3 text-sm">
               {isRtl ? "المساعدة" : "Help"}
             </h4>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href={`/${locale}/faq`} className="hover:text-emerald-600">{isRtl ? "الأسئلة الشائعة" : "FAQ"}</Link></li>
-              <li><Link href={`/${locale}/safety`} className="hover:text-emerald-600">{isRtl ? "دليل الأمان" : "Safety Guide"}</Link></li>
-              <li><Link href={`/${locale}/contact`} className="hover:text-emerald-600">{isRtl ? "تواصل معنا" : "Contact us"}</Link></li>
+              <li>
+                <Link href={`/${locale}/faq`} className="hover:text-emerald-600">
+                  {isRtl ? "الأسئلة الشائعة" : "FAQ"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/safety`} className="hover:text-emerald-600">
+                  {isRtl ? "مركز الأمان" : "Safety Center"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/prohibited`} className="hover:text-emerald-600">
+                  {isRtl ? "السلع والعروض الممنوعة" : "Prohibited items"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/contact`} className="hover:text-emerald-600">
+                  {isRtl ? "اتصل بنا" : "Contact us"}
+                </Link>
+              </li>
             </ul>
           </div>
 
+          {/* Policies */}
           <div>
-            <h4 className="font-semibold text-gray-800 mb-3 text-sm">
-              {isRtl ? "للشركاء" : "Partners"}
+            <h4 className="font-semibold text-emerald-800 mb-3 text-sm">
+              {isRtl ? "السياسات" : "Policies"}
             </h4>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link href={`/${locale}/merchant`} className="hover:text-emerald-600">{isRtl ? "تاجر قريب" : "Areep Merchant"}</Link></li>
-              <li><Link href={`/${locale}/partner-terms`} className="hover:text-emerald-600">{isRtl ? "الشروط للشركاء" : "Partner Terms"}</Link></li>
+              <li>
+                <Link href={`/${locale}/terms`} className="hover:text-emerald-600">
+                  {isRtl ? "اتفاقية الاستخدام" : "Terms of use"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/privacy`} className="hover:text-emerald-600">
+                  {isRtl ? "سياسة الخصوصية" : "Privacy"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/ip`} className="hover:text-emerald-600">
+                  {isRtl ? "الملكية الفكرية" : "IP policy"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/about`} className="hover:text-emerald-600">
+                  {isRtl ? "عن قريب" : "About"}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/how-it-works`} className="hover:text-emerald-600">
+                  {isRtl ? "كيف يعمل؟" : "How it works"}
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-500">
             © {year} {isRtl ? "قريب. جميع الحقوق محفوظة" : "Areep. All rights reserved"}
           </p>
-          <div className="flex items-center gap-3">
-            {/* App store badges placeholders */}
-            <div className="h-9 px-3 bg-black text-white text-xs rounded flex items-center gap-1.5 opacity-80">
-              <span>Google Play</span>
-            </div>
-            <div className="h-9 px-3 bg-black text-white text-xs rounded flex items-center gap-1.5 opacity-80">
-              <span>App Store</span>
-            </div>
-          </div>
         </div>
       </div>
     </footer>

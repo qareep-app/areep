@@ -1,6 +1,5 @@
 import { setRequestLocale } from "next-intl/server"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import PolicyLayout, { Card } from "@/components/PolicyLayout"
 
 type Props = { params: Promise<{ locale: string }> }
 
@@ -8,43 +7,34 @@ export default async function SafetyPage({ params }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
   const isRtl = locale === "ar"
-
   return (
-    <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <Header locale={locale} />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-12 space-y-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isRtl ? "دليل الأمان" : "Safety Guide"}
-          </h1>
-          <div className="text-gray-600 space-y-4 leading-relaxed">
-            {isRtl ? (
-              <>
-                <p>قريب بتوفر بيئة آمنة للبيع والشراء. اتبع النصايح دي:</p>
-                <ul className="list-disc pr-6 space-y-2">
-                  <li>التواصل داخل الموقع فقط — مفيش أرقام تليفون بتظهر.</li>
-                  <li>للسلع الغالية (عربيات وعقارات) استخدم نظام وسيط قريب.</li>
-                  <li>اتقابل في مكان عام وآمن لما يكون الاستلام يدوي.</li>
-                  <li>متحوّلش فلوس مقدماً من غير ضمان الوسيط.</li>
-                  <li>بلّغ عن أي إعلان مشبوه من خلال تواصل معنا.</li>
-                </ul>
-              </>
-            ) : (
-              <>
-                <p>Areep provides a safer marketplace. Follow these tips:</p>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Chat only inside the platform — no phone numbers shown.</li>
-                  <li>For cars and real estate use Areep Escrow.</li>
-                  <li>Meet in a public safe place for handovers.</li>
-                  <li>Do not pay in advance without escrow protection.</li>
-                  <li>Report suspicious ads via Contact us.</li>
-                </ul>
-              </>
-            )}
-          </div>
-        </div>
-      </main>
-      <Footer locale={locale} />
-    </div>
+    <PolicyLayout locale={locale} title={isRtl ? "مركز الأمان" : "Safety Center"}>
+      <p className="text-center text-gray-600 text-sm mb-2">
+        {isRtl ? "نصايح بسيطة تحميك من النصب وتخلّي تعاملك آمن:" : "Simple tips for safer deals:"}
+      </p>
+      <Card title={isRtl ? "التواصل من خلال الموقع بس" : "Chat only on the platform"}>
+        <p>
+          {isRtl
+            ? "من فضلك كُل أي تواصل بخصوص الشراء أو البيع من خلال رسائل الموقع، وماتشاركش رقم تليفونك أو أي وسيلة تواصل تانية في المحادثة. ده بيحمي حقك وحق الطرف التاني، وممنوع في كل الفئات من غير استثناء. محاولات تكرار مشاركة الأرقام بتأدّي لتجميد الحساب."
+            : "Keep all deal chat inside Areep. Sharing phone numbers is forbidden and may freeze the account."}
+        </p>
+      </Card>
+      <Card title={isRtl ? "للمشتري" : "For buyers"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "افحص المنتج كويس قبل الدفع، وخصوصاً السيارات وقطع الغيار والأجهزة." : "Inspect before paying."}</li>
+          <li>{isRtl ? "متحوّلش فلوس مقدماً لشخص متعرفوش." : "Don't send money upfront to strangers."}</li>
+          <li>{isRtl ? "قابل البائع في مكان عام ومزدحم لو الاستلام بنفسك." : "Meet in public places."}</li>
+          <li>{isRtl ? "احتفظ بالمحادثات واستخدم رسائل الموقع في التواصل." : "Keep chat history on the platform."}</li>
+          <li>{isRtl ? "لو السعر أقل بكثير من السوق، خُد بالك: ممكن يكون نصب." : "Prices far below market may be scams."}</li>
+        </ul>
+      </Card>
+      <Card title={isRtl ? "للجميع" : "For everyone"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "متشاركش كود التحقق (OTP) أو كلمة السر مع أي حد، ولا حتى مع اللي بيقول إنه من الدعم." : "Never share OTP or passwords."}</li>
+          <li>{isRtl ? "الموقع مش هيطلب منك بيانات بطاقتك في رسالة أو مكالمة." : "We never ask for card details by message/call."}</li>
+          <li>{isRtl ? "بلّغ عن أي حساب أو إعلان مشبوه فوراً." : "Report suspicious accounts/ads immediately."}</li>
+        </ul>
+      </Card>
+    </PolicyLayout>
   )
 }

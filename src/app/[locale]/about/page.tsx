@@ -1,32 +1,33 @@
 import { setRequestLocale } from "next-intl/server"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import PolicyLayout, { Card } from "@/components/PolicyLayout"
 
 type Props = { params: Promise<{ locale: string }> }
 
-export default async function Page({ params }: Props) {
+export default async function AboutPage({ params }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
   const isRtl = locale === "ar"
-
   return (
-    <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <Header locale={locale} />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            {isRtl ? "عن قريب" : "About Areep"}
-          </h1>
-          <div className="prose prose-gray text-gray-600 leading-relaxed space-y-4">
-            {isRtl ? (
-              <><p>قريب أول وأكبر منصة إعلانات مبوبة مصرية بتساعدك تبيع وتشتري من الناس اللي حواليك بسهولة وأمان.</p><p>هدفنا نخلي الدكان قريب منك، من غير توصيل غالي ولا مشاوير بعيدة.</p></>
-            ) : (
-              <><p>Areep Egypt's first and largest classified ads platform. that helps you buy and sell from people nearby easily and safely.</p><p>Our goal is to bring the shop close to you, without expensive delivery or long trips.</p></>
-            )}
-          </div>
-        </div>
-      </main>
-      <Footer locale={locale} />
-    </div>
+    <PolicyLayout locale={locale} title={isRtl ? "عن قريب" : "About Areep"}>
+      <p className="text-sm text-gray-600 text-center mb-4">
+        {isRtl
+          ? "قريب منصة مصرية بتوصّل الناس بالمحلات والبائعين القريبين منهم. بدأنا بقطع غيار السيارات والزيوت، وبتتوسّع تدريجياً لفئات تانية زي السيارات والعقارات والموبايلات والأجهزة والأثاث والملابس والوظائف والخدمات."
+          : "Areep is an Egyptian local marketplace connecting people with nearby sellers."}
+      </p>
+      <Card title={isRtl ? "ليه قريب؟" : "Why Areep?"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "بائعون موثّقون بمستويات توثيق واضحة." : "Verified sellers."}</li>
+          <li>{isRtl ? "سعر واحد شامل قدام المشتري، من غير رسوم مخفية." : "Clear pricing."}</li>
+          <li>{isRtl ? "تواصل مباشر بين المشتري والبائع من خلال الرسائل داخل الموقع." : "In-app chat only."}</li>
+          <li>{isRtl ? "دفع عند الاستلام أو أونلاين بالبطاقة (حسب توفّر الخدمة)." : "COD or online payment."}</li>
+          <li>{isRtl ? "بحث بالمحافظة وبالأقرب ليك." : "Search by governorate and nearby."}</li>
+        </ul>
+      </Card>
+      <Card title={isRtl ? "شعارنا" : "Our slogan"}>
+        <p className="font-semibold text-emerald-800">
+          {isRtl ? "دكانك قريب. أي حاجة وكل حاجة، من ناس وأماكن قريبة منك." : "Your shop is nearby."}
+        </p>
+      </Card>
+    </PolicyLayout>
   )
 }

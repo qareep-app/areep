@@ -68,19 +68,19 @@ export default function CarBrandsSidebar({ locale = "ar", limit = 9 }: Props) {
           {isRtl ? "ماركات السيارات" : "Car brands"}
         </h3>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {visible.map((b) => (
             <Link
               key={b.slug}
               href={`/${locale}/ads?category=cars&brand=${b.slug}`}
-              className="group flex items-center justify-center h-14 rounded-xl bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-white transition"
+              className="group flex items-center justify-center h-20 rounded-xl bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-white transition p-2"
               title={b.name}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={b.logo}
                 alt={b.name}
-                className="max-h-9 max-w-[80%] object-contain group-hover:scale-105 transition"
+                className="max-h-14 max-w-full object-contain group-hover:scale-105 transition"
               />
             </Link>
           ))}

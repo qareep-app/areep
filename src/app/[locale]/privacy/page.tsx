@@ -1,6 +1,5 @@
 import { setRequestLocale } from "next-intl/server"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import PolicyLayout, { Card } from "@/components/PolicyLayout"
 
 type Props = { params: Promise<{ locale: string }> }
 
@@ -9,24 +8,41 @@ export default async function PrivacyPage({ params }: Props) {
   setRequestLocale(locale)
   const isRtl = locale === "ar"
   return (
-    <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <Header locale={locale} />
-      <main className="flex-1 max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-6">{isRtl ? "سياسة الخصوصية" : "Privacy Policy"}</h1>
-        <div className="text-gray-600 space-y-3 leading-relaxed">
-          <p>
-            {isRtl
-              ? "نحترم خصوصيتك. أرقام الهواتف لا تظهر للمستخدمين الآخرين. التواصل يتم داخل المنصة فقط."
-              : "We respect your privacy. Phone numbers are never shown to other users. Communication happens only inside the platform."}
-          </p>
-          <p>
-            {isRtl
-              ? "نستخدم بياناتك لتشغيل الحساب والإعلانات وتحسين الخدمة فقط."
-              : "We use your data only to operate accounts, ads, and improve the service."}
-          </p>
-        </div>
-      </main>
-      <Footer locale={locale} />
-    </div>
+    <PolicyLayout locale={locale} title={isRtl ? "سياسة الخصوصية" : "Privacy Policy"}>
+      <p className="text-sm text-gray-600 text-center mb-2">
+        {isRtl
+          ? "خصوصيتك مهمة لينا. الصفحة دي بتوضح إيه اللي بنجمعه وليه وإزاي بنحميه."
+          : "What we collect, why, and how we protect it."}
+      </p>
+      <Card title={isRtl ? "البيانات اللي بنجمعها" : "Data we collect"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "بيانات الحساب: الاسم والبريد الإلكتروني ورقم الهاتف." : "Account: name, email, phone."}</li>
+          <li>{isRtl ? "بيانات البائعين: العنوان ومستندات التوثيق (بطاقة الرقم القومي أو السجل التجاري)." : "Seller docs for verification."}</li>
+          <li>{isRtl ? "بيانات الطلبات والرسائل بين المشتري والبائع." : "Orders and in-app messages."}</li>
+          <li>{isRtl ? "موقعك التقريبي لو ضغطت على «القريب» وسمحت للمتصفح بتحديد الموقع، وبنستخدمه لاختيار المحافظة فقط." : "Approximate location only if you allow Nearby."}</li>
+        </ul>
+      </Card>
+      <Card title={isRtl ? "استخدام البيانات" : "How we use data"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "تنفيذ الطلبات والتواصل بين الأطراف." : "Orders and user communication."}</li>
+          <li>{isRtl ? "التحقق من هوية البائعين ومنع الاحتيال." : "Seller verification and anti-fraud."}</li>
+          <li>{isRtl ? "تحسين الخدمة وإرسال الإشعارات المتعلقة بحسابك." : "Service improvement and account notices."}</li>
+        </ul>
+      </Card>
+      <Card title={isRtl ? "المشاركة والحماية" : "Sharing & protection"}>
+        <p>
+          {isRtl
+            ? "منبيعش بياناتك لأي جهة. بنشارك أقل قدر لازم مع مزودي الخدمة (زي بوابة الدفع) عشان تتم العمليات، أو لو القانون طلب كده. بنستخدم إجراءات تقنية لحماية بياناتك، ومع ذلك مفيش نظام آمن بنسبة 100%."
+            : "We don't sell data. Minimal sharing with processors (e.g. payments) or when required by law."}
+        </p>
+      </Card>
+      <Card title={isRtl ? "حقوقك" : "Your rights"}>
+        <p>
+          {isRtl
+            ? "تقدر تطلب تعديل بياناتك أو حذف حسابك من خلال التواصل معنا عبر صفحة «اتصل بنا»."
+            : "Request data changes or account deletion via Contact Us."}
+        </p>
+      </Card>
+    </PolicyLayout>
   )
 }

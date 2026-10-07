@@ -1,10 +1,13 @@
+"use client"
+
 import Link from "next/link"
+import { useRef } from "react"
 import {
   Car, Wrench, Bike, Settings, Building2, Smartphone,
   Tv, Sofa, Shirt, PawPrint, Briefcase, Package, Home,
   HandHelping, GraduationCap, Gamepad2, UtensilsCrossed,
   PartyPopper, Code2, Trees, Palette, Plane, Map,
-  Gem, Search,
+  Gem, Search, ChevronLeft, ChevronRight,
 } from "lucide-react"
 
 interface Props {
@@ -25,7 +28,6 @@ const categories = [
   { slug: "fashion", icon: Shirt, nameAr: "أزياء", nameEn: "Fashion", gradient: "from-pink-400 to-fuchsia-600" },
   { slug: "pets", icon: PawPrint, nameAr: "حيوانات", nameEn: "Pets", gradient: "from-lime-400 to-green-600" },
   { slug: "jobs", icon: Briefcase, nameAr: "وظائف", nameEn: "Jobs", gradient: "from-violet-400 to-purple-600" },
-  // extra categories before "other"
   { slug: "services", icon: HandHelping, nameAr: "خدمات", nameEn: "Services", gradient: "from-sky-400 to-blue-500" },
   { slug: "training", icon: GraduationCap, nameAr: "تدريب", nameEn: "Training", gradient: "from-amber-400 to-orange-500" },
   { slug: "games", icon: Gamepad2, nameAr: "ألعاب", nameEn: "Games", gradient: "from-purple-400 to-violet-600" },
@@ -43,11 +45,43 @@ const categories = [
 
 export default function CategoryBar({ locale = "ar" }: Props) {
   const isRtl = locale === "ar"
+  const scroller = useRef<HTMLDivElement>(null)
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scroller.current
+    if (!el) return
+    const amount = 220
+    // In RTL, scrollLeft behavior varies; use scrollBy with sign
+    const delta = dir === "left" ? -amount : amount
+    el.scrollBy({ left: isRtl ? -delta : delta, behavior: "smooth" })
+  }
 
   return (
     <section className="bg-white border-b border-gray-100 sticky top-[7.5rem] z-40">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
-        <div className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
+        {/* Scroll buttons */}
+        <button
+          type="button"
+          onClick={() => scroll("left")}
+          className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
+          aria-label="scroll"
+        >
+          {isRtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+        <button
+          type="button"
+          onClick={() => scroll("right")}
+          className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
+          aria-label="scroll"
+        >
+          {isRtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        </button>
+
+        <div
+          ref={scroller}
+          className="flex items-center gap-1 overflow-x-auto py-3 px-8 scrollbar-thin scroll-smooth"
+          style={{ scrollbarWidth: "thin" }}
+        >
           {categories.map((cat) => {
             const Icon = cat.icon
             const href = cat.slug ? `/${locale}/ads?category=${cat.slug}` : `/${locale}`

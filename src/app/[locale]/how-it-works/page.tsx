@@ -1,32 +1,30 @@
 import { setRequestLocale } from "next-intl/server"
-import Header from "@/components/Header"
-import Footer from "@/components/Footer"
+import PolicyLayout, { Card } from "@/components/PolicyLayout"
 
 type Props = { params: Promise<{ locale: string }> }
 
-export default async function Page({ params }: Props) {
+export default async function HowItWorksPage({ params }: Props) {
   const { locale } = await params
   setRequestLocale(locale)
   const isRtl = locale === "ar"
-
   return (
-    <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <Header locale={locale} />
-      <main className="flex-1">
-        <div className="max-w-3xl mx-auto px-4 py-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            {isRtl ? "كيف يعمل؟" : "How it works?"}
-          </h1>
-          <div className="prose prose-gray text-gray-600 leading-relaxed space-y-4">
-            {isRtl ? (
-              <><p><strong>1.</strong> سجّل برقم موبايلك.</p><p><strong>2.</strong> انشر إعلانك أو دور على اللي محتاجه.</p><p><strong>3.</strong> تواصل من خلال الشات الداخلي فقط.</p><p><strong>4.</strong> للسلع الغالية استخدم نظام وسيط قريب لحماية الفلوس.</p></>
-            ) : (
-              <><p><strong>1.</strong> Sign up with your phone number.</p><p><strong>2.</strong> Post an ad or search for what you need.</p><p><strong>3.</strong> Chat only inside the platform.</p><p><strong>4.</strong> For high-value items use Areep Escrow to protect your money.</p></>
-            )}
-          </div>
-        </div>
-      </main>
-      <Footer locale={locale} />
-    </div>
+    <PolicyLayout locale={locale} title={isRtl ? "كيف يعمل قريب؟" : "How Areep works"}>
+      <Card title={isRtl ? "للمشتري" : "For buyers"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "دوّر بالبحث أو من الفئات، وفلتر بالمحافظة أو ماركة السيارة." : "Search and filter."}</li>
+          <li>{isRtl ? "افتح المنتج وراسل البائع لو عندك أي سؤال (شات الموقع)." : "Open ad and chat."}</li>
+          <li>{isRtl ? "أضف للسلة وأكمل الطلب، وادفع عند الاستلام أو أونلاين." : "Order and pay."}</li>
+          <li>{isRtl ? "استلم طلبك وافحصه. ولو فيه مشكلة تواصل مع البائع أو مع الدعم." : "Receive and inspect."}</li>
+        </ul>
+      </Card>
+      <Card title={isRtl ? "للبائع" : "For sellers"}>
+        <ul className="list-disc pe-5 space-y-2">
+          <li>{isRtl ? "سجّل كبائع من صفحة «سجّل كبائع» وأكمل بياناتك ومستنداتك." : "Register and verify."}</li>
+          <li>{isRtl ? "بعد موافقة الإدارة تقدر تضيف منتجاتك وتحدد سعرك ومصاريف الشحن." : "Post after approval."}</li>
+          <li>{isRtl ? "استقبل الطلبات ورد على رسائل المشترين." : "Manage orders and chat."}</li>
+          <li>{isRtl ? "سدّد عمولة الموقع في مواعيدها (اقرأ صفحة العمولة وسداد الرسوم)." : "Pay platform fees on time."}</li>
+        </ul>
+      </Card>
+    </PolicyLayout>
   )
 }

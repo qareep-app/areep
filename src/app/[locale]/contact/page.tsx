@@ -18,8 +18,8 @@ export default async function ContactPage({ params }: Props) {
         <div className="space-y-3 text-center">
           <p>
             <span className="text-gray-500">{isRtl ? "البريد الإلكتروني: " : "Email: "}</span>
-            <a href="mailto:dokanelbalad@gmail.com" className="text-emerald-700 font-semibold">
-              dokanelbalad@gmail.com
+            <a href="mailto:qareep26@gmail.com" className="text-emerald-700 font-semibold">
+              qareep26@gmail.com
             </a>
           </p>
           <p>

@@ -3,17 +3,31 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun } from "lucide-react"
+import {
+  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X,
+} from "lucide-react"
 
 interface HeaderProps {
   locale?: string
 }
+
+const navLinks = [
+  { href: "", labelAr: "الرئيسية", labelEn: "Home" },
+  { href: "categories", labelAr: "التصنيفات", labelEn: "Categories" },
+  { href: "ads", labelAr: "كل الإعلانات", labelEn: "All ads" },
+  { href: "ads?nearby=1", labelAr: "قريب مني", labelEn: "Nearby" },
+  { href: "areas", labelAr: "الأحياء", labelEn: "Areas" },
+  { href: "how-it-works", labelAr: "كيف يعمل؟", labelEn: "How it works" },
+  { href: "about", labelAr: "عن قريب", labelEn: "About" },
+  { href: "contact", labelAr: "تواصل معنا", labelEn: "Contact" },
+]
 
 export default function Header({ locale = "ar" }: HeaderProps) {
   const isRtl = locale === "ar"
   const router = useRouter()
   const [q, setQ] = useState("")
   const [dark, setDark] = useState(false)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -38,124 +52,151 @@ export default function Header({ locale = "ar" }: HeaderProps) {
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const term = q.trim()
-    if (term) {
-      router.push(`/${locale}/ads?q=${encodeURIComponent(term)}`)
-    } else {
-      router.push(`/${locale}/ads`)
+    router.push(term ? `/${locale}/ads?q=${encodeURIComponent(term)}` : `/${locale}/ads`)
+  }
+
+  const linkHref = (path: string) => {
+    if (!path) return `/${locale}`
+    if (path.includes("?")) {
+      const [p, qs] = path.split("?")
+      return `/${locale}/${p}?${qs}`
     }
+    return `/${locale}/${path}`
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+      {/* Top row */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
-          {/* Logo */}
+        <div className="flex items-center gap-2 sm:gap-3 h-14 sm:h-16">
+          {/* Logo — start (right in RTL) */}
           <Link href={`/${locale}`} className="flex items-center gap-2 shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/app-icon.png"
-              alt="قريب"
-              className="w-10 h-10 rounded-xl object-cover shadow-md"
-            />
-            <div className="flex flex-col">
-              <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400 leading-none">
-                قريب
-              </span>
-              <span className="text-[10px] text-orange-500 font-medium leading-none mt-0.5">
-                دكانك قريب
-              </span>
+            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xl shadow-sm">
+              ق
+            </div>
+            <div className="leading-none hidden xs:block">
+              <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">قريب</div>
+              <div className="text-[10px] text-orange-500 font-medium">دكانك قريب</div>
             </div>
           </Link>
 
-          {/* Search — center */}
-          <form onSubmit={onSearch} className="hidden md:flex flex-1 max-w-xl mx-auto">
-            <div className="relative w-full">
+          {/* Search — grows in center */}
+          <form onSubmit={onSearch} className="flex-1 min-w-0 max-w-xl mx-auto">
+            <div className="relative">
               <input
                 type="text"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={isRtl ? "بتدور على إيه؟" : "What are you looking for?"}
-                className="w-full h-11 pe-4 ps-12 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-white focus:bg-white dark:focus:bg-gray-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
+                placeholder={isRtl ? "دور على مدينة أو حي..." : "Search city or area..."}
+                className="w-full h-10 sm:h-11 pe-4 ps-11 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-white text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
               />
               <button
                 type="submit"
-                className="absolute start-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-emerald-600"
+                className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600"
               >
                 <Search size={18} />
               </button>
             </div>
           </form>
 
-          {/* Actions — evenly spaced, not clustered only on one side */}
-          <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+          {/* Actions — end (left in RTL) */}
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             <button
               type="button"
               onClick={toggleDark}
-              className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition"
-              aria-label={dark ? "Light mode" : "Dark mode"}
-              title={isRtl ? (dark ? "الوضع النهاري" : "الوضع الليلي") : dark ? "Light" : "Dark"}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300 hidden sm:inline-flex"
+              aria-label="theme"
             >
-              {dark ? <Sun size={20} /> : <Moon size={20} />}
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
             <Link
               href={locale === "ar" ? "/en" : "/ar"}
-              className="px-2.5 py-1.5 text-xs font-semibold rounded-full border border-gray-200 dark:border-gray-700 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition"
+              className="px-2 py-1.5 text-xs font-semibold rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-300"
             >
               {locale === "ar" ? "EN" : "عربي"}
             </Link>
 
             <Link
               href={`/${locale}/messages`}
-              className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
-              aria-label="Messages"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
+              aria-label="chat"
             >
               <MessageCircle size={20} />
             </Link>
 
             <Link
               href={`/${locale}/dashboard`}
-              className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
-              aria-label="Dashboard"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300 hidden sm:inline-flex"
+              aria-label="dashboard"
             >
               <LayoutDashboard size={20} />
             </Link>
 
             <Link
               href={`/${locale}/auth/login`}
-              className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
-              aria-label="Account"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
+              aria-label="account"
             >
               <User size={20} />
             </Link>
 
             <Link
               href={`/${locale}/ads/new`}
-              className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 rounded-full font-medium text-sm shadow-sm transition ms-1"
+              className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 rounded-full font-medium text-sm shadow-sm ms-1"
             >
               <Plus size={18} />
-              <span className="hidden sm:inline">{isRtl ? "أضف إعلان" : "Post ad"}</span>
+              <span className="hidden sm:inline">{isRtl ? "أضف إعلانك" : "Post ad"}</span>
             </Link>
+
+            <button
+              type="button"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 lg:hidden"
+              onClick={() => setOpen((v) => !v)}
+              aria-label="menu"
+            >
+              {open ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
 
-        {/* Mobile search */}
-        <form onSubmit={onSearch} className="md:hidden pb-3">
-          <div className="relative">
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={isRtl ? "بتدور على إيه؟" : "What are you looking for?"}
-              className="w-full h-10 pe-4 ps-11 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-white text-sm outline-none focus:border-emerald-500"
-            />
-            <Search
-              size={16}
-              className="absolute start-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-          </div>
-        </form>
+        {/* Nav links row — desktop */}
+        <nav className="hidden lg:flex items-center justify-center gap-5 pb-2.5 text-sm text-gray-600 dark:text-gray-300">
+          {navLinks.map((l) => (
+            <Link
+              key={l.href || "home"}
+              href={linkHref(l.href)}
+              className="hover:text-emerald-600 transition whitespace-nowrap"
+            >
+              {isRtl ? l.labelAr : l.labelEn}
+            </Link>
+          ))}
+        </nav>
       </div>
+
+      {/* Mobile nav */}
+      {open && (
+        <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 space-y-1">
+          {navLinks.map((l) => (
+            <Link
+              key={l.href || "home"}
+              href={linkHref(l.href)}
+              onClick={() => setOpen(false)}
+              className="block py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-emerald-600"
+            >
+              {isRtl ? l.labelAr : l.labelEn}
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={toggleDark}
+            className="flex items-center gap-2 py-2.5 text-sm text-gray-700 dark:text-gray-200"
+          >
+            {dark ? <Sun size={16} /> : <Moon size={16} />}
+            {isRtl ? (dark ? "الوضع النهاري" : "الوضع الليلي") : dark ? "Light" : "Dark"}
+          </button>
+        </div>
+      )}
     </header>
   )
 }

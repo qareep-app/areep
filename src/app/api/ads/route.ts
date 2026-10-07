@@ -100,19 +100,55 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const category = searchParams.get("category")
     const city = searchParams.get("city")
+    const gov = searchParams.get("gov")
+    const q = searchParams.get("q")
+    const min = searchParams.get("min")
+    const max = searchParams.get("max")
+    const sort = searchParams.get("sort") || "newest"
+    const brand = searchParams.get("brand")
     const limit = Math.min(Number(searchParams.get("limit") || 20), 50)
+
+    const priceFilter: any = {}
+    if (min != null && min !== "" && !Number.isNaN(Number(min))) priceFilter.gte = Number(min)
+    if (max != null && max !== "" && !Number.isNaN(Number(max))) priceFilter.lte = Number(max)
+
+    const orSearch = q
+      ? [
+          { titleAr: { contains: q, mode: "insensitive" as const } },
+          { descriptionAr: { contains: q, mode: "insensitive" as const } },
+          { city: { contains: q, mode: "insensitive" as const } },
+          { area: { contains: q, mode: "insensitive" as const } },
+        ]
+      : undefined
+
+    let orderBy: any = [{ isFeatured: "desc" }, { createdAt: "desc" }]
+    if (sort === "price_asc") orderBy = [{ price: "asc" }]
+    if (sort === "price_desc") orderBy = [{ price: "desc" }]
+    // nearby: still newest until geo sort is wired
+    if (sort === "nearby") orderBy = [{ createdAt: "desc" }]
 
     const ads = await prisma.ad.findMany({
       where: {
         status: "ACTIVE",
         ...(category ? { category: { slug: category } } : {}),
         ...(city ? { city: { contains: city, mode: "insensitive" } } : {}),
+        ...(gov ? { city: { contains: gov, mode: "insensitive" } } : {}),
+        ...(Object.keys(priceFilter).length ? { price: priceFilter } : {}),
+        ...(orSearch ? { OR: orSearch } : {}),
+        ...(brand
+          ? {
+              OR: [
+                { titleAr: { contains: brand, mode: "insensitive" } },
+                { descriptionAr: { contains: brand, mode: "insensitive" } },
+              ],
+            }
+          : {}),
       },
       include: {
         category: true,
         user: { select: { id: true, name: true, rating: true, trustBadge: true } },
       },
-      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+      orderBy,
       take: limit,
     })
 

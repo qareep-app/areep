@@ -56,7 +56,7 @@ export default function CategoryBar({ locale = "ar" }: Props) {
   }
 
   return (
-    <section className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-16 z-40">
+    <section className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-[6.5rem] z-40">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
         <button
           type="button"

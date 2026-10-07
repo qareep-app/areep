@@ -8,6 +8,7 @@ import CarBrandsSidebar from "@/components/CarBrandsSidebar"
 import Features from "@/components/Features"
 import CTASection from "@/components/CTASection"
 import Link from "next/link"
+import { Suspense } from "react"
 import { prisma } from "@/lib/prisma"
 import { timeAgo } from "@/lib/time-ago"
 import { Clock, Eye } from "lucide-react"
@@ -46,7 +47,7 @@ export default async function HomePage({ params }: Props) {
         <HomeHero locale={locale} />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <HomeFilters locale={locale} />
+          <Suspense fallback={null}><HomeFilters locale={locale} /></Suspense>
 
           <div className="grid lg:grid-cols-[300px_1fr] gap-6 mt-2">
             <div className="order-1">

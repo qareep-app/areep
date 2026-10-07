@@ -1,9 +1,12 @@
 import { setRequestLocale } from "next-intl/server"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
+import CategoryBar from "@/components/CategoryBar"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
-import { MessageCircle, MapPin, Shield } from "lucide-react"
+import { timeAgo } from "@/lib/time-ago"
+import { Clock, Eye, MapPin, Shield } from "lucide-react"
+import { notFound } from "next/navigation"
 
 type Props = {
   params: Promise<{ locale: string; id: string }>
@@ -11,114 +14,217 @@ type Props = {
 
 export const dynamic = "force-dynamic"
 
-export default async function AdPage({ params }: Props) {
+export default async function AdDetailPage({ params }: Props) {
   const { locale, id } = await params
   setRequestLocale(locale)
   const isRtl = locale === "ar"
 
   let ad: any = null
-  let errorMsg = ""
+  let similar: any[] = []
 
   try {
     ad = await prisma.ad.findUnique({
       where: { id },
       include: {
+        user: { select: { id: true, name: true, rating: true } },
         category: true,
-        user: { select: { id: true, name: true, rating: true, trustBadge: true } },
       },
     })
-
     if (ad) {
-      // views++ without blocking the page
-      prisma.ad.update({ where: { id }, data: { views: { increment: 1 } } }).catch(() => {})
+      // increment views (best effort)
+      try {
+        await prisma.ad.update({
+          where: { id },
+          data: { views: { increment: 1 } },
+        })
+      } catch {}
+
+      similar = await prisma.ad.findMany({
+        where: {
+          status: "ACTIVE",
+          id: { not: id },
+          OR: [
+            ad.city ? { city: { contains: ad.city, mode: "insensitive" } } : undefined,
+            ad.categoryId ? { categoryId: ad.categoryId } : undefined,
+          ].filter(Boolean) as any,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      })
     }
-  } catch (e: any) {
-    console.error("Ad detail error:", e)
-    errorMsg = e?.message || "Error"
+  } catch (e) {
+    console.error(e)
   }
+
+  if (!ad) notFound()
+
+  const images: string[] = Array.isArray(ad.images) ? ad.images : []
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" dir={isRtl ? "rtl" : "ltr"}>
       <Header locale={locale} />
-      <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {errorMsg && (
-            <div className="bg-amber-50 text-amber-800 rounded-xl p-4 text-sm mb-4 break-all">
-              {errorMsg}
-            </div>
-          )}
+      <CategoryBar locale={locale} />
 
-          {!errorMsg && !ad && (
-            <div className="bg-white rounded-2xl border p-10 text-center">
-              <p className="text-gray-500 mb-3">{isRtl ? "الإعلان غير موجود" : "Ad not found"}</p>
-              <Link href={`/${locale}/ads`} className="text-emerald-600 text-sm font-medium">
-                {isRtl ? "رجوع للإعلانات" : "Back to ads"}
-              </Link>
-            </div>
-          )}
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+        <div className="text-sm text-gray-500 mb-4">
+          <Link href={`/${locale}`} className="hover:text-emerald-600">
+            {isRtl ? "الرئيسية" : "Home"}
+          </Link>
+          {" / "}
+          <Link href={`/${locale}/ads`} className="hover:text-emerald-600">
+            {isRtl ? "الإعلانات" : "Ads"}
+          </Link>
+          {" / "}
+          <span className="text-gray-800">{ad.titleAr}</span>
+        </div>
 
-          {ad && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="aspect-video bg-gray-100 flex items-center justify-center text-5xl">
-                {Array.isArray(ad.images) && ad.images[0] ? (
+        <div className="grid lg:grid-cols-[1fr_280px] gap-6">
+          {/* Main ad */}
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            {/* Gallery */}
+            <div className="aspect-[16/10] bg-gray-100 flex items-center justify-center">
+              {images[0] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={images[0]} alt="" className="w-full h-full object-contain bg-white" />
+              ) : (
+                <span className="text-5xl">📦</span>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="flex gap-2 p-3 overflow-x-auto">
+                {images.map((src, i) => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={ad.images[0]} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  "📦"
-                )}
+                  <img
+                    key={i}
+                    src={src}
+                    alt=""
+                    className="w-20 h-16 object-cover rounded-lg border border-gray-100"
+                  />
+                ))}
               </div>
+            )}
 
-              <div className="p-6 space-y-4">
-                <h1 className="text-2xl font-bold text-gray-900">{ad.titleAr}</h1>
-
-                <p className="text-2xl font-bold text-emerald-700">
+            <div className="p-5 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h1 className="text-xl md:text-2xl font-bold text-emerald-700">
+                    {ad.titleAr}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500">
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin size={14} />
+                      {ad.city}
+                      {ad.area ? ` · ${ad.area}` : ""}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock size={14} />
+                      {timeAgo(ad.createdAt, isRtl)}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Eye size={14} />
+                      {ad.views ?? 0}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-blue-600">
                   {Number(ad.price).toLocaleString()} {isRtl ? "جنيه" : "EGP"}
                 </p>
+              </div>
 
-                <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin size={14} />
-                    {ad.city}
-                    {ad.area ? ` · ${ad.area}` : ""}
-                  </span>
-                  {ad.category && (
-                    <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">
-                      {isRtl ? ad.category.nameAr : ad.category.nameEn}
-                    </span>
-                  )}
-                  {ad.allowEscrow && (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium">
-                      <Shield size={14} />
-                      {isRtl ? "وسيط قريب متاح" : "Escrow available"}
-                    </span>
-                  )}
+              {ad.user?.name && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                    {ad.user.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{ad.user.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {isRtl ? "حساب البائع" : "Seller account"}
+                    </p>
+                  </div>
                 </div>
+              )}
 
-                <div className="border-t border-gray-100 pt-4">
-                  <h2 className="font-semibold text-gray-900 mb-2">
-                    {isRtl ? "الوصف" : "Description"}
-                  </h2>
-                  <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">
-                    {ad.descriptionAr}
-                  </p>
+              {ad.allowEscrow && (
+                <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                  <Shield size={16} />
+                  {isRtl ? "متاح نظام وسيط قريب" : "Areep Escrow available"}
                 </div>
+              )}
 
-                <Link
-                  href={`/${locale}/messages`}
-                  className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl transition"
-                >
-                  <MessageCircle size={18} />
-                  {isRtl ? "تواصل مع البائع (شات داخلي)" : "Contact seller (internal chat)"}
-                </Link>
-
-                <p className="text-xs text-center text-gray-400">
-                  {isRtl
-                    ? "التواصل داخل قريب فقط – مفيش أرقام تليفون بتظهر"
-                    : "Chat only inside Areep – no phone numbers shown"}
+              <div>
+                <h2 className="font-semibold text-gray-900 mb-2">
+                  {isRtl ? "الوصف" : "Description"}
+                </h2>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
+                  {ad.descriptionAr || (isRtl ? "لا يوجد وصف" : "No description")}
                 </p>
               </div>
+
+              {ad.category && (
+                <p className="text-sm text-gray-500">
+                  {isRtl ? "الفئة: " : "Category: "}
+                  <Link
+                    href={`/${locale}/ads?category=${ad.category.slug}`}
+                    className="text-emerald-600"
+                  >
+                    {isRtl ? ad.category.nameAr : ad.category.nameEn}
+                  </Link>
+                </p>
+              )}
+
+              <Link
+                href={`/${locale}/chat?ad=${ad.id}`}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition"
+              >
+                {isRtl ? "راسل البائع (شات الموقع)" : "Message seller"}
+              </Link>
             </div>
-          )}
+          </div>
+
+          {/* Similar ads sidebar */}
+          <aside>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 sticky top-36">
+              <h3 className="font-bold text-gray-800 mb-3">
+                {isRtl ? "عروض مشابهة" : "Similar ads"}
+              </h3>
+              {similar.length === 0 ? (
+                <p className="text-sm text-gray-400">
+                  {isRtl ? "مفيش عروض مشابهة حالياً" : "No similar ads"}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {similar.map((s) => (
+                    <Link
+                      key={s.id}
+                      href={`/${locale}/ads/${s.id}`}
+                      className="flex gap-2 hover:bg-gray-50 rounded-lg p-1.5 transition"
+                    >
+                      <div className="w-16 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                        {Array.isArray(s.images) && s.images[0] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.images[0]} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-sm">📦</div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-emerald-700 line-clamp-2">
+                          {s.titleAr}
+                        </p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          {s.city}
+                        </p>
+                        <p className="text-xs font-bold text-blue-600">
+                          {Number(s.price).toLocaleString()}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       </main>
       <Footer locale={locale} />

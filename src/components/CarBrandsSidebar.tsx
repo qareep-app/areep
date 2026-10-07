@@ -1,4 +1,5 @@
 import Link from "next/link"
+import HomeSideFilters from "@/components/HomeSideFilters"
 
 interface Props {
   locale?: string
@@ -73,14 +74,14 @@ export default function CarBrandsSidebar({ locale = "ar", limit = 9 }: Props) {
             <Link
               key={b.slug}
               href={`/${locale}/ads?category=cars&brand=${b.slug}`}
-              className="group flex items-center justify-center h-20 rounded-xl bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-white transition p-2"
+              className="group flex items-center justify-center h-24 rounded-xl bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-white transition p-2"
               title={b.name}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={b.logo}
                 alt={b.name}
-                className="max-h-14 max-w-full object-contain group-hover:scale-105 transition"
+                className="max-h-16 max-w-full object-contain group-hover:scale-105 transition"
               />
             </Link>
           ))}
@@ -94,6 +95,8 @@ export default function CarBrandsSidebar({ locale = "ar", limit = 9 }: Props) {
             {isRtl ? "عرض المزيد" : "Show more"}
           </Link>
         )}
+
+        <HomeSideFilters locale={locale} />
       </div>
     </aside>
   )

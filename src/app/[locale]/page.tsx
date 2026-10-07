@@ -9,6 +9,8 @@ import Features from "@/components/Features"
 import CTASection from "@/components/CTASection"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import { timeAgo } from "@/lib/time-ago"
+import { Clock, Eye } from "lucide-react"
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -27,6 +29,9 @@ export default async function HomePage({ params }: Props) {
       where: { status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
       take: 30,
+      include: {
+        user: { select: { id: true, name: true } },
+      },
     })
   } catch (e) {
     console.error("Home ads error:", e)
@@ -43,17 +48,11 @@ export default async function HomePage({ params }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <HomeFilters locale={locale} />
 
-          {/* 
-            RTL: first column in DOM appears on the RIGHT → brands sidebar
-            second column → ads list on the LEFT
-          */}
-          <div className="grid lg:grid-cols-[280px_1fr] gap-6 mt-2">
-            {/* Brands — right side in Arabic */}
+          <div className="grid lg:grid-cols-[300px_1fr] gap-6 mt-2">
             <div className="order-1">
               <CarBrandsSidebar locale={locale} limit={9} />
             </div>
 
-            {/* Ads feed — left side in Arabic */}
             <div className="order-2 min-w-0">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900">
@@ -81,8 +80,8 @@ export default async function HomePage({ params }: Props) {
                       href={`/${locale}/ads/${ad.id}`}
                       className="flex gap-3 bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md hover:border-emerald-200 transition"
                     >
-                      {/* Image */}
-                      <div className="w-28 h-24 sm:w-36 sm:h-28 shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {/* Image - left in LTR, right in RTL naturally via flex+dir */}
+                      <div className="w-32 h-28 sm:w-40 sm:h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                         {Array.isArray(ad.images) && ad.images[0] ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -95,10 +94,9 @@ export default async function HomePage({ params }: Props) {
                         )}
                       </div>
 
-                      {/* Text */}
                       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                         <div>
-                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
+                          <h3 className="font-semibold text-emerald-700 text-sm sm:text-base line-clamp-2">
                             {ad.titleAr}
                           </h3>
                           {ad.descriptionAr && (
@@ -107,14 +105,28 @@ export default async function HomePage({ params }: Props) {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center justify-between gap-2 mt-2">
-                          <span className="text-emerald-700 font-bold text-sm">
+
+                        <div className="mt-2 space-y-1">
+                          <p className="text-blue-600 font-bold text-sm">
                             {Number(ad.price).toLocaleString()} {isRtl ? "جنيه" : "EGP"}
-                          </span>
-                          <span className="text-xs text-gray-400 truncate">
-                            {ad.city}
-                            {ad.area ? ` · ${ad.area}` : ""}
-                          </span>
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+                            <span>{ad.city}{ad.area ? ` · ${ad.area}` : ""}</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Clock size={12} />
+                              {timeAgo(ad.createdAt, isRtl)}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Eye size={12} />
+                              {ad.views ?? 0}
+                            </span>
+                          </div>
+                          {ad.user?.name && (
+                            <p className="text-[11px] text-gray-400">
+                              {isRtl ? "البائع: " : "Seller: "}
+                              <span className="text-gray-600 font-medium">{ad.user.name}</span>
+                            </p>
+                          )}
                         </div>
                       </div>
                     </Link>

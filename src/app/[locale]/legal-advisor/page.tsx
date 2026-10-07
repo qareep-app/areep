@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server"
 import PolicyLayout, { Card } from "@/components/PolicyLayout"
 import Link from "next/link"
 import { Scale, MessageCircle, Shield } from "lucide-react"
+import PayButton from "@/components/payments/PayButton"
 
 type Props = { params: Promise<{ locale: string }> }
 
@@ -105,6 +106,15 @@ export default async function LegalAdvisorPage({ params }: Props) {
               : "5% fee is stored on each consultation when fee is set."}
           </li>
         </ul>
+      </Card>
+
+      <Card title={isRtl ? "دفع أتعاب الاستشارة (Paymob)" : "Pay consultation (Paymob)"}>
+        <p className="text-sm text-gray-600 mb-3">
+          {isRtl
+            ? "بعد الاتفاق على الأتعاب يتم الدفع عبر Paymob. عمولة المنصة 5%."
+            : "After agreeing fees, pay via Paymob. Platform fee 5%."}
+        </p>
+        <PayButton locale={locale} type="legal" amount={500} referenceId="demo-legal" label={isRtl ? "دفع استشارة تجريبية 500 ج" : "Pay demo consultation 500 EGP"} />
       </Card>
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">

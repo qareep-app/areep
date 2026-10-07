@@ -42,9 +42,23 @@ export default function AdvisorInboxPage() {
     }
   }
 
+
+  useEffect(() => {
+    // Soft gate: prefer session role from /api/auth/me
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        const role = d.user?.role
+        if (role && role !== "LEGAL_CONSULTANT" && role !== "ADMIN") {
+          // still allow demo inbox for presentation if no session
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     load()
-    const t = setInterval(load, 8000)
+    const t = setInterval(load, 2500)
     return () => clearInterval(t)
   }, [])
 

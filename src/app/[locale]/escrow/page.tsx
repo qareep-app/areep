@@ -1,3 +1,4 @@
+import PayButton from "@/components/payments/PayButton"
 import { setRequestLocale } from "next-intl/server"
 import PolicyLayout, { Card } from "@/components/PolicyLayout"
 import Link from "next/link"
@@ -154,6 +155,14 @@ export default async function EscrowPage({ params }: Props) {
             {isRtl ? "اتفاقية الاستخدام" : "Terms"}
           </Link>
         </p>
+      </Card>
+    
+      <Card title="دفع عبر Paymob">
+        <p className="text-sm mb-3">تجربة دفع وسيط / عمولة — يحتاج مفاتيح Paymob على Vercel.</p>
+        <div className="flex flex-wrap gap-3">
+          <PayButton locale={locale} type="escrow" amount={1000} referenceId="demo-escrow" label="دفع وسيط تجريبي 1000 ج" />
+          <PayButton locale={locale} type="commission" amount={50} referenceId="demo-commission" label="دفع عمولة 50 ج" />
+        </div>
       </Card>
     </PolicyLayout>
   )

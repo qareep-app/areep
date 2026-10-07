@@ -28,6 +28,19 @@ export default async function SafetyPage({ params }: Props) {
           <li>{isRtl ? "لو السعر أقل بكثير من السوق، خُد بالك: ممكن يكون نصب." : "Prices far below market may be scams."}</li>
         </ul>
       </Card>
+      <Card title={isRtl ? "وسيط قريب" : "Areep Escrow"}>
+        <p>
+          {isRtl
+            ? "للصفقات الكبيرة (سيارات وعقارات) استخدم «وسيط قريب» عشان الفلوس تتحجز عند المنصة لحد التسليم. التفاصيل في صفحة سياسة وسيط قريب."
+            : "For large deals (cars, real estate) use Areep Escrow so funds are held until delivery."}
+        </p>
+        <p className="mt-2">
+          <a href={`/${locale}/escrow`} className="text-emerald-600 font-medium underline">
+            {isRtl ? "اقرأ سياسة وسيط قريب" : "Read Escrow policy"}
+          </a>
+        </p>
+      </Card>
+
       <Card title={isRtl ? "للجميع" : "For everyone"}>
         <ul className="list-disc pe-5 space-y-2">
           <li>{isRtl ? "متشاركش كود التحقق (OTP) أو كلمة السر مع أي حد، ولا حتى مع اللي بيقول إنه من الدعم." : "Never share OTP or passwords."}</li>

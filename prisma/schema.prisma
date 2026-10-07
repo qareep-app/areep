@@ -409,3 +409,26 @@ model Setting {
   key   String @unique
   value Json
 }
+
+// Areep Escrow deals
+model EscrowDeal {
+  id                String   @id @default(cuid())
+  adId              String
+  sellerId          String
+  buyerId           String
+  amount            Decimal  @db.Decimal(14, 2)
+  sellerCommission  Decimal  @db.Decimal(14, 2)
+  buyerCommission   Decimal  @db.Decimal(14, 2)
+  totalHeld         Decimal  @db.Decimal(14, 2)
+  status            String   @default("PENDING_PAYMENT") // PENDING_PAYMENT | HELD | RELEASED | REFUNDED | DISPUTED
+  paymobOrderId     String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  releasedAt        DateTime?
+
+  @@index([adId])
+  @@index([sellerId])
+  @@index([buyerId])
+  @@index([status])
+}

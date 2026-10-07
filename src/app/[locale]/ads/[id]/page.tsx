@@ -146,9 +146,18 @@ export default async function AdDetailPage({ params }: Props) {
               )}
 
               {ad.allowEscrow && (
-                <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
-                  <Shield size={16} />
-                  {isRtl ? "متاح نظام وسيط قريب" : "Areep Escrow available"}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <Shield size={16} />
+                    <span>
+                      {isRtl
+                        ? "هذا الإعلان يدعم وسيط قريب (حجز المبلغ حتى التسليم)"
+                        : "This ad supports Areep Escrow (funds held until delivery)"}
+                    </span>
+                  </div>
+                  <Link href={`/${locale}/escrow`} className="text-emerald-700 font-semibold underline shrink-0">
+                    {isRtl ? "كيف يعمل؟" : "How it works"}
+                  </Link>
                 </div>
               )}
 

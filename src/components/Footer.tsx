@@ -84,6 +84,7 @@ export default function Footer({ locale = "ar" }: FooterProps) {
             <ul className="space-y-2 text-sm text-gray-600">
               <li><Link href={`/${locale}/faq`} className="hover:text-emerald-600">{isRtl ? "الأسئلة الشائعة" : "FAQ"}</Link></li>
               <li><Link href={`/${locale}/safety`} className="hover:text-emerald-600">{isRtl ? "مركز الأمان" : "Safety Center"}</Link></li>
+              <li><Link href={`/${locale}/escrow`} className="hover:text-emerald-600">{isRtl ? "وسيط قريب" : "Areep Escrow"}</Link></li>
               <li><Link href={`/${locale}/prohibited`} className="hover:text-emerald-600">{isRtl ? "السلع والعروض الممنوعة" : "Prohibited items"}</Link></li>
               <li><Link href={`/${locale}/contact`} className="hover:text-emerald-600">{isRtl ? "اتصل بنا" : "Contact us"}</Link></li>
             </ul>

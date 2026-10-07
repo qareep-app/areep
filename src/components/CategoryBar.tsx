@@ -50,20 +50,18 @@ export default function CategoryBar({ locale = "ar" }: Props) {
   const scroll = (dir: "left" | "right") => {
     const el = scroller.current
     if (!el) return
-    const amount = 220
-    // In RTL, scrollLeft behavior varies; use scrollBy with sign
+    const amount = 240
     const delta = dir === "left" ? -amount : amount
     el.scrollBy({ left: isRtl ? -delta : delta, behavior: "smooth" })
   }
 
   return (
-    <section className="bg-white border-b border-gray-100 sticky top-[7.5rem] z-40">
+    <section className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-16 z-40">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
-        {/* Scroll buttons */}
         <button
           type="button"
           onClick={() => scroll("left")}
-          className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
+          className="absolute start-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
           aria-label="scroll"
         >
           {isRtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -71,7 +69,7 @@ export default function CategoryBar({ locale = "ar" }: Props) {
         <button
           type="button"
           onClick={() => scroll("right")}
-          className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
+          className="absolute end-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
           aria-label="scroll"
         >
           {isRtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
@@ -79,7 +77,7 @@ export default function CategoryBar({ locale = "ar" }: Props) {
 
         <div
           ref={scroller}
-          className="flex items-center gap-1 overflow-x-auto py-3 px-8 scrollbar-thin scroll-smooth"
+          className="flex items-stretch justify-start gap-2 overflow-x-auto py-3 px-9 scroll-smooth"
           style={{ scrollbarWidth: "thin" }}
         >
           {categories.map((cat) => {
@@ -89,18 +87,19 @@ export default function CategoryBar({ locale = "ar" }: Props) {
               <Link
                 key={cat.slug || "home"}
                 href={href}
-                className="flex flex-col items-center gap-1.5 min-w-[72px] px-2 py-1 rounded-xl hover:bg-gray-50 transition shrink-0"
+                className="flex flex-col items-center justify-center gap-1.5 min-w-[76px] w-[76px] shrink-0"
               >
+                {/* 3D rectangular tile — icon centered */}
                 <div
-                  className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-white`}
+                  className={`w-14 h-12 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-white`}
                   style={{
                     boxShadow:
-                      "0 4px 6px -1px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.25)",
+                      "0 6px 10px -2px rgb(0 0 0 / 0.18), 0 2px 4px -2px rgb(0 0 0 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.28)",
                   }}
                 >
-                  <Icon size={20} strokeWidth={2.2} />
+                  <Icon size={22} strokeWidth={2.1} className="mx-auto" />
                 </div>
-                <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">
+                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight w-full">
                   {isRtl ? cat.nameAr : cat.nameEn}
                 </span>
               </Link>

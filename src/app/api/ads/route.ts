@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const ad = await prisma.ad.create({
+    const ad = await (prisma as any).ad.create({
       data: {
         titleAr,
         titleEn: titleEn || titleAr,

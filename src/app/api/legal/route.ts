@@ -1,53 +1,54 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+const db = prisma as any
+
 const BLOCKED =
   /(\+?\d[\d\s\-()]{7,}\d)|(https?:\/\/\S+)|(@\w+\.(com|net|org))|(واتس|واتساب|whatsapp|تيليجرام|telegram)/i
 
-/** GET list consultations — ?role=advisor|client */
+async function ensureUsers() {
+  let advisor = await db.user.findFirst({
+    where: { role: "LEGAL_CONSULTANT" },
+  })
+  if (!advisor) {
+    advisor = await db.user.create({
+      data: {
+        phone: "01110000000",
+        name: "مستشار قريب القانوني",
+        role: "LEGAL_CONSULTANT",
+        isVerified: true,
+        trustBadge: "VERIFIED_LEGAL",
+      },
+    })
+  }
+
+  let client = await db.user.findFirst({ where: { phone: "01000000000" } })
+  if (!client) {
+    client = await db.user.upsert({
+      where: { phone: "01000000000" },
+      update: {},
+      create: { phone: "01000000000", name: "مستخدم تجريبي", role: "USER" },
+    })
+  }
+  return { advisor, client }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const role = searchParams.get("role") || "client"
     const userId = searchParams.get("userId")
-
-    // Dev: resolve demo users
-    let advisor = await prisma.user.findFirst({
-      where: { role: "LEGAL_CONSULTANT" },
-    })
-    if (!advisor) {
-      advisor = await prisma.user.create({
-        data: {
-          phone: "01110000000",
-          name: "مستشار قريب القانوني",
-          role: "LEGAL_CONSULTANT",
-          isVerified: true,
-          trustBadge: "VERIFIED_LEGAL",
-        },
-      })
-    }
-
-    let client = await prisma.user.findFirst({ where: { phone: "01000000000" } })
-    if (!client) {
-      client = await prisma.user.upsert({
-        where: { phone: "01000000000" },
-        update: {},
-        create: { phone: "01000000000", name: "مستخدم تجريبي", role: "USER" },
-      })
-    }
+    const { advisor, client } = await ensureUsers()
 
     const where =
       role === "advisor"
         ? {
-            OR: [
-              { advisorId: advisor.id },
-              { advisorId: null, status: "OPEN" },
-            ],
+            OR: [{ advisorId: advisor.id }, { advisorId: null, status: "OPEN" }],
           }
         : { clientId: userId || client.id }
 
-    const list = await prisma.legalConsultation.findMany({
-      where: where as any,
+    const list = await db.legalConsultation.findMany({
+      where,
       orderBy: { updatedAt: "desc" },
       take: 50,
     })
@@ -64,34 +65,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** POST create consultation or append message */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { action } = body
-
-    // Ensure advisor exists
-    let advisor = await prisma.user.findFirst({ where: { role: "LEGAL_CONSULTANT" } })
-    if (!advisor) {
-      advisor = await prisma.user.create({
-        data: {
-          phone: "01110000000",
-          name: "مستشار قريب القانوني",
-          role: "LEGAL_CONSULTANT",
-          isVerified: true,
-          trustBadge: "VERIFIED_LEGAL",
-        },
-      })
-    }
-
-    let client = await prisma.user.findFirst({ where: { phone: "01000000000" } })
-    if (!client) {
-      client = await prisma.user.upsert({
-        where: { phone: "01000000000" },
-        update: {},
-        create: { phone: "01000000000", name: "مستخدم تجريبي", role: "USER" },
-      })
-    }
+    const { advisor, client } = await ensureUsers()
 
     if (action === "create") {
       const topic = String(body.topic || "").trim()
@@ -99,19 +77,21 @@ export async function POST(req: NextRequest) {
       if (!topic) {
         return NextResponse.json({ error: "topic required" }, { status: 400 })
       }
-      const platformFee = agreedFee != null ? Math.round(agreedFee * 0.05 * 100) / 100 : null
-      const share = agreedFee != null ? Math.round(agreedFee * 0.025 * 100) / 100 : null
+      const platformFee =
+        agreedFee != null ? Math.round(agreedFee * 0.05 * 100) / 100 : null
+      const share =
+        agreedFee != null ? Math.round(agreedFee * 0.025 * 100) / 100 : null
 
-      const row = await prisma.legalConsultation.create({
+      const row = await db.legalConsultation.create({
         data: {
           clientId: client.id,
           advisorId: advisor.id,
           topic,
           status: "ASSIGNED",
-          agreedFee: agreedFee as any,
-          platformFee: platformFee as any,
-          clientShare: share as any,
-          advisorShare: share as any,
+          agreedFee,
+          platformFee,
+          clientShare: share,
+          advisorShare: share,
           messages: [
             {
               role: "system",
@@ -127,7 +107,10 @@ export async function POST(req: NextRequest) {
     if (action === "message") {
       const { consultationId, text, asAdvisor } = body
       if (!consultationId || !text) {
-        return NextResponse.json({ error: "consultationId and text required" }, { status: 400 })
+        return NextResponse.json(
+          { error: "consultationId and text required" },
+          { status: 400 }
+        )
       }
       if (BLOCKED.test(String(text))) {
         return NextResponse.json(
@@ -135,20 +118,22 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         )
       }
-      const row = await prisma.legalConsultation.findUnique({ where: { id: consultationId } })
+      const row = await db.legalConsultation.findUnique({
+        where: { id: consultationId },
+      })
       if (!row) return NextResponse.json({ error: "not found" }, { status: 404 })
 
-      const msgs = Array.isArray(row.messages) ? [...(row.messages as any[])] : []
+      const msgs = Array.isArray(row.messages) ? [...row.messages] : []
       msgs.push({
         role: asAdvisor ? "advisor" : "client",
         text: String(text).trim(),
         at: new Date().toISOString(),
       })
 
-      const updated = await prisma.legalConsultation.update({
+      const updated = await db.legalConsultation.update({
         where: { id: consultationId },
         data: {
-          messages: msgs as any,
+          messages: msgs,
           status: row.status === "OPEN" ? "IN_PROGRESS" : row.status,
           advisorId: row.advisorId || advisor.id,
         },
@@ -158,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "complete") {
       const { consultationId } = body
-      const updated = await prisma.legalConsultation.update({
+      const updated = await db.legalConsultation.update({
         where: { id: consultationId },
         data: { status: "COMPLETED" },
       })

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X,
+  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X, Scale,
 } from "lucide-react"
 
 interface HeaderProps {
@@ -37,6 +37,7 @@ export default function Header({ locale = "ar" }: HeaderProps) {
         (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)
       setDark(preferDark)
       document.documentElement.classList.toggle("dark", preferDark)
+      document.body.classList.toggle("dark", preferDark)
     } catch {}
   }, [])
 
@@ -44,6 +45,7 @@ export default function Header({ locale = "ar" }: HeaderProps) {
     const next = !dark
     setDark(next)
     document.documentElement.classList.toggle("dark", next)
+    document.body.classList.toggle("dark", next)
     try {
       localStorage.setItem("areep-theme", next ? "dark" : "light")
     } catch {}
@@ -65,22 +67,27 @@ export default function Header({ locale = "ar" }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-      {/* Top row */}
+    <header className="sticky top-0 z-50 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-3 h-14 sm:h-16">
-          {/* Logo — start (right in RTL) */}
-          <Link href={`/${locale}`} className="flex items-center gap-2 shrink-0">
-            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xl shadow-sm">
-              ق
-            </div>
-            <div className="leading-none hidden xs:block">
-              <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">قريب</div>
-              <div className="text-[10px] text-orange-500 font-medium">دكانك قريب</div>
+          {/* Brand: icon + name + slogan */}
+          <Link href={`/${locale}`} className="flex items-center gap-2.5 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/app-icon.png"
+              alt="قريب"
+              className="w-10 h-10 rounded-xl object-cover shadow-sm ring-1 ring-black/5"
+            />
+            <div className="leading-tight">
+              <div className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                قريب
+              </div>
+              <div className="text-[10px] sm:text-xs text-orange-500 font-medium">
+                دكانك قريب
+              </div>
             </div>
           </Link>
 
-          {/* Search — grows in center */}
           <form onSubmit={onSearch} className="flex-1 min-w-0 max-w-xl mx-auto">
             <div className="relative">
               <input
@@ -88,7 +95,7 @@ export default function Header({ locale = "ar" }: HeaderProps) {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={isRtl ? "دور على مدينة أو حي..." : "Search city or area..."}
-                className="w-full h-10 sm:h-11 pe-4 ps-11 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 dark:text-white text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                className="w-full h-10 sm:h-11 pe-4 ps-11 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
               />
               <button
                 type="submit"
@@ -99,13 +106,13 @@ export default function Header({ locale = "ar" }: HeaderProps) {
             </div>
           </form>
 
-          {/* Actions — end (left in RTL) */}
           <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             <button
               type="button"
               onClick={toggleDark}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300 hidden sm:inline-flex"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
               aria-label="theme"
+              title={isRtl ? (dark ? "نهاري" : "ليلي") : dark ? "Light" : "Dark"}
             >
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -123,6 +130,15 @@ export default function Header({ locale = "ar" }: HeaderProps) {
               aria-label="chat"
             >
               <MessageCircle size={20} />
+            </Link>
+
+            <Link
+              href={`/${locale}/legal-advisor`}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
+              aria-label="legal"
+              title={isRtl ? "مستشار قانوني" : "Legal advisor"}
+            >
+              <Scale size={20} />
             </Link>
 
             <Link
@@ -160,7 +176,6 @@ export default function Header({ locale = "ar" }: HeaderProps) {
           </div>
         </div>
 
-        {/* Nav links row — desktop */}
         <nav className="hidden lg:flex items-center justify-center gap-5 pb-2.5 text-sm text-gray-600 dark:text-gray-300">
           {navLinks.map((l) => (
             <Link
@@ -174,9 +189,8 @@ export default function Header({ locale = "ar" }: HeaderProps) {
         </nav>
       </div>
 
-      {/* Mobile nav */}
       {open && (
-        <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 space-y-1">
+        <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3 space-y-1">
           {navLinks.map((l) => (
             <Link
               key={l.href || "home"}
@@ -187,14 +201,14 @@ export default function Header({ locale = "ar" }: HeaderProps) {
               {isRtl ? l.labelAr : l.labelEn}
             </Link>
           ))}
-          <button
-            type="button"
-            onClick={toggleDark}
+          <Link
+            href={`/${locale}/legal-advisor`}
+            onClick={() => setOpen(false)}
             className="flex items-center gap-2 py-2.5 text-sm text-gray-700 dark:text-gray-200"
           >
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
-            {isRtl ? (dark ? "الوضع النهاري" : "الوضع الليلي") : dark ? "Light" : "Dark"}
-          </button>
+            <Scale size={16} />
+            {isRtl ? "مستشار قانوني" : "Legal advisor"}
+          </Link>
         </div>
       )}
     </header>

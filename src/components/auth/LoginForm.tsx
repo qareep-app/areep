@@ -2,26 +2,29 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Smartphone, Shield, ArrowLeft, ArrowRight } from "lucide-react"
+import { Shield, ArrowLeft, ArrowRight, Phone } from "lucide-react"
 
-interface LoginFormProps {
+interface Props {
   locale: string
 }
 
-export default function LoginForm({ locale }: LoginFormProps) {
+export default function LoginForm({ locale }: Props) {
   const isRtl = locale === "ar"
   const router = useRouter()
-
   const [step, setStep] = useState<"phone" | "otp">("phone")
   const [phone, setPhone] = useState("")
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [info, setInfo] = useState("")
+  const [devOtp, setDevOtp] = useState<string | null>(null)
 
   const sendOtp = async () => {
     setError("")
-    if (!phone || phone.length < 10) {
-      setError(isRtl ? "أدخل رقم موبايل صحيح" : "Enter a valid phone number")
+    setInfo("")
+    setDevOtp(null)
+    if (!/^01[0125][0-9]{8}$/.test(phone)) {
+      setError(isRtl ? "رقم موبايل مصري غير صحيح" : "Invalid Egyptian mobile")
       return
     }
     setLoading(true)
@@ -29,131 +32,148 @@ export default function LoginForm({ locale }: LoginFormProps) {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.startsWith("0") ? phone : `0${phone}` }),
+        body: JSON.stringify({ phone }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed")
+      setInfo(data.message || "")
+      if (data.devOtp) setDevOtp(data.devOtp)
       setStep("otp")
     } catch (e: any) {
-      setError(e.message || (isRtl ? "حصل خطأ، حاول تاني" : "Something went wrong"))
+      setError(e.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleOtpChange = (i: number, val: string) => {
+    const d = val.replace(/\D/g, "").slice(-1)
+    const next = [...otpDigits]
+    next[i] = d
+    setOtpDigits(next)
+    if (d && i < 5) {
+      const el = document.getElementById(`otp-${i + 1}`)
+      el?.focus()
     }
   }
 
   const verifyOtp = async () => {
-    setError("")
-    const code = otp.join("")
-    if (code.length !== 6) {
-      setError(isRtl ? "أدخل الرمز كاملاً" : "Enter the full code")
+    const otp = otpDigits.join("")
+    if (otp.length !== 6) {
+      setError(isRtl ? "أدخل الرمز المكون من 6 أرقام" : "Enter 6-digit code")
       return
     }
     setLoading(true)
+    setError("")
     try {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp: code }),
+        body: JSON.stringify({ phone, otp }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Invalid OTP")
-      // Save token (simple for now)
-      if (data.token) localStorage.setItem("areep_token", data.token)
-      if (data.user) localStorage.setItem("areep_user", JSON.stringify(data.user))
-      router.push(`/${locale}/dashboard`)
+      if (!res.ok) throw new Error(data.error || "Failed")
+      try {
+        localStorage.setItem("areep_user", JSON.stringify(data.user))
+      } catch {}
+      if (data.user?.role === "ADMIN") {
+        router.push(`/${locale}/admin`)
+      } else {
+        router.push(`/${locale}/dashboard`)
+      }
+      router.refresh()
     } catch (e: any) {
-      setError(e.message || (isRtl ? "رمز غير صحيح" : "Invalid code"))
+      setError(e.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    const next = [...otp]
-    next[index] = value.replace(/\D/g, "")
-    setOtp(next)
-    if (value && index < 5) {
-      document.getElementById(`login-otp-${index + 1}`)?.focus()
-    }
-  }
-
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
-      <div className="text-center mb-6">
-        <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
-          <Smartphone size={28} />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isRtl ? "تسجيل الدخول" : "Login"}
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm max-w-md mx-auto">
+      <div className="flex items-center gap-2 mb-6">
+        <Phone className="text-emerald-600" />
+        <h1 className="text-xl font-bold">
+          {isRtl ? "دخول برقم الموبايل" : "Login with mobile"}
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {isRtl ? "ادخل برقم الموبايل فقط – مفيش باسورد" : "Login with phone number only – no password"}
-        </p>
       </div>
 
       {error && (
-        <div className="mb-4 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
-          {error}
+        <div className="mb-4 text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</div>
+      )}
+      {info && (
+        <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 rounded-xl px-3 py-2">{info}</div>
+      )}
+      {devOtp && (
+        <div className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-3 py-2">
+          {isRtl ? "رمز تجريبي (مزود SMS غير مضبوط): " : "Dev OTP (no SMS provider): "}
+          <strong className="tracking-widest text-lg">{devOtp}</strong>
         </div>
       )}
 
-      {step === "phone" && (
+      {step === "phone" ? (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              {isRtl ? "رقم الموبايل" : "Phone Number"}
-            </label>
-            <div className="flex" dir="ltr">
-              <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm">
-                +20
-              </span>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
-                placeholder="10xxxxxxxx"
-                className="flex-1 h-12 px-4 rounded-r-xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
-              />
-            </div>
+            <label className="text-sm text-gray-600">{isRtl ? "رقم الموبايل" : "Mobile"}</label>
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+              placeholder="01xxxxxxxxx"
+              className="mt-1 w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-left"
+              dir="ltr"
+            />
           </div>
           <button
+            type="button"
             onClick={sendOtp}
             disabled={loading}
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition"
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold rounded-xl"
           >
-            {loading ? (isRtl ? "جاري الإرسال..." : "Sending...") : isRtl ? "إرسال رمز التحقق" : "Send OTP"}
+            {loading
+              ? isRtl
+                ? "جاري الإرسال..."
+                : "Sending..."
+              : isRtl
+                ? "إرسال رمز التحقق"
+                : "Send OTP"}
           </button>
         </div>
-      )}
-
-      {step === "otp" && (
+      ) : (
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 text-center">
-            {isRtl ? `تم إرسال رمز إلى ${phone}` : `Code sent to ${phone}`}
+          <p className="text-sm text-gray-600">
+            {isRtl ? `أدخل الرمز المرسل إلى ${phone}` : `Enter code sent to ${phone}`}
           </p>
           <div className="flex justify-center gap-2" dir="ltr">
-            {otp.map((d, i) => (
+            {otpDigits.map((d, i) => (
               <input
                 key={i}
-                id={`login-otp-${i}`}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
+                id={`otp-${i}`}
                 value={d}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 className="w-11 h-12 text-center text-lg font-bold border border-gray-200 rounded-xl focus:border-emerald-500 outline-none"
+                inputMode="numeric"
+                maxLength={1}
               />
             ))}
           </div>
           <button
+            type="button"
             onClick={verifyOtp}
             disabled={loading}
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition"
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold rounded-xl"
           >
-            {loading ? (isRtl ? "جاري التحقق..." : "Verifying...") : isRtl ? "تأكيد الدخول" : "Verify & Login"}
+            {loading
+              ? isRtl
+                ? "جاري التحقق..."
+                : "Verifying..."
+              : isRtl
+                ? "تأكيد الدخول"
+                : "Verify & Login"}
           </button>
           <button
+            type="button"
             onClick={() => setStep("phone")}
             className="w-full text-sm text-gray-500 hover:text-emerald-600 flex items-center justify-center gap-1"
           >
@@ -163,12 +183,12 @@ export default function LoginForm({ locale }: LoginFormProps) {
         </div>
       )}
 
-      <div className="mt-6 flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-xl p-3">
+      <div className="mt-6 flex items-start gap-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
         <Shield size={14} className="shrink-0 mt-0.5 text-emerald-600" />
         <span>
           {isRtl
-            ? "بنستخدم رقم الموبايل فقط للتحقق. مفيش كلمات مرور ومفيش مشاركة لرقمك مع أي حد."
-            : "We only use your phone for verification. No passwords and your number is never shared."}
+            ? "رقم الموبايل للتحقق فقط. مفيش كلمة مرور، ومفيش مشاركة الرقم مع معلنين آخرين."
+            : "Phone is only for verification. No password; number is never shared with other users."}
         </span>
       </div>
     </div>

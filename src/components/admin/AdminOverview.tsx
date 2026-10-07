@@ -1,85 +1,142 @@
 "use client"
 
-import {
-  Users,
-  Megaphone,
-  CreditCard,
-  TrendingUp,
-  Shield,
-  AlertTriangle,
-} from "lucide-react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { Users, Megaphone, Scale, Shield } from "lucide-react"
 
-interface AdminOverviewProps {
+interface Props {
   locale: string
 }
 
-export default function AdminOverview({ locale }: AdminOverviewProps) {
+export default function AdminOverview({ locale }: Props) {
   const isRtl = locale === "ar"
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState("")
 
-  const stats = [
-    { ar: "المستخدمين", en: "Users", value: "12,480", icon: Users, color: "bg-blue-50 text-blue-600" },
-    { ar: "إعلانات نشطة", en: "Active Ads", value: "3,921", icon: Megaphone, color: "bg-violet-50 text-violet-600" },
-    { ar: "صفقات وسيط", en: "Escrow Deals", value: "847", icon: Shield, color: "bg-emerald-50 text-emerald-600" },
-    { ar: "إيرادات الشهر", en: "Monthly Revenue", value: "1.2M", icon: TrendingUp, color: "bg-orange-50 text-orange-600" },
-    { ar: "عمولات محصلة", en: "Commissions", value: "285K", icon: CreditCard, color: "bg-cyan-50 text-cyan-600" },
-    { ar: "نزاعات مفتوحة", en: "Open Disputes", value: "12", icon: AlertTriangle, color: "bg-red-50 text-red-600" },
+  useEffect(() => {
+    fetch("/api/admin/stats")
+      .then(async (r) => {
+        const j = await r.json()
+        if (!r.ok) throw new Error(j.error || "Unauthorized")
+        setData(j)
+      })
+      .catch((e) => setError(e.message))
+  }, [])
+
+  if (error) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-sm space-y-3">
+        <p className="font-semibold text-amber-900">
+          {isRtl ? "مطلوب دخول أدمن" : "Admin login required"}
+        </p>
+        <p className="text-amber-800">
+          {isRtl
+            ? "ادخل برقم موبايل أدمن (مضبوط في ADMIN_PHONES) من صفحة الدخول."
+            : "Sign in with an admin phone (ADMIN_PHONES env)."}
+        </p>
+        <p className="text-xs text-amber-700">{error}</p>
+        <Link
+          href={`/${locale}/auth/login`}
+          className="inline-flex px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium"
+        >
+          {isRtl ? "تسجيل الدخول" : "Login"}
+        </Link>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="bg-white rounded-2xl border p-8 text-center text-gray-400 text-sm">
+        {isRtl ? "جاري تحميل لوحة التحكم..." : "Loading admin..."}
+      </div>
+    )
+  }
+
+  const s = data.stats || {}
+  const cards = [
+    { label: isRtl ? "المستخدمون" : "Users", value: s.users, icon: Users },
+    { label: isRtl ? "كل الإعلانات" : "All ads", value: s.ads, icon: Megaphone },
+    { label: isRtl ? "إعلانات نشطة" : "Active ads", value: s.activeAds, icon: Megaphone },
+    { label: isRtl ? "استشارات قانونية" : "Legal", value: s.consultations, icon: Scale },
+    { label: isRtl ? "صفقات وسيط" : "Escrow", value: s.escrow, icon: Shield },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isRtl ? "لوحة تحكم الأدمن" : "Admin Dashboard"}
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {isRtl ? "لوحة تحكم الأدمن" : "Admin dashboard"}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {isRtl ? "إدارة كاملة لمنصة قريب" : "Full management of Areep platform"}
+          {isRtl ? "نظرة عامة على المنصة" : "Platform overview"}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {stats.map((s, i) => {
-          const Icon = s.icon
-          return (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-              <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center mb-3`}>
-                <Icon size={20} />
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-              <div className="text-sm text-gray-500 mt-0.5">{isRtl ? s.ar : s.en}</div>
-            </div>
-          )
-        })}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {cards.map((c) => (
+          <div
+            key={c.label}
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4"
+          >
+            <c.icon className="text-emerald-600 mb-2" size={20} />
+            <div className="text-2xl font-bold">{c.value ?? 0}</div>
+            <div className="text-xs text-gray-500">{c.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Recent activity placeholder */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h2 className="font-bold text-gray-900 mb-4">
-          {isRtl ? "آخر النشاطات" : "Recent Activity"}
-        </h2>
-        <ul className="space-y-3 text-sm text-gray-600">
-          <li className="flex justify-between">
-            <span>{isRtl ? "صفقة وسيط جديدة - سيارة" : "New escrow deal - Car"}</span>
-            <span className="text-gray-400">منذ 12 دقيقة</span>
-          </li>
-          <li className="flex justify-between">
-            <span>{isRtl ? "عقد عقاري تم توقيعه" : "Real estate contract signed"}</span>
-            <span className="text-gray-400">منذ 45 دقيقة</span>
-          </li>
-          <li className="flex justify-between">
-            <span>{isRtl ? "مستخدم جديد مسجل" : "New user registered"}</span>
-            <span className="text-gray-400">منذ ساعة</span>
-          </li>
-          <li className="flex justify-between">
-            <span>{isRtl ? "نزاع تم فتحه" : "Dispute opened"}</span>
-            <span className="text-red-500">منذ ساعتين</span>
-          </li>
-        </ul>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-4">
+          <h2 className="font-semibold mb-3">{isRtl ? "أحدث الإعلانات" : "Recent ads"}</h2>
+          <ul className="space-y-2 text-sm">
+            {(data.recentAds || []).map((a: any) => (
+              <li key={a.id} className="flex justify-between gap-2 border-b border-gray-50 pb-2">
+                <Link href={`/${locale}/ads/${a.id}`} className="text-emerald-700 hover:underline truncate">
+                  {a.titleAr}
+                </Link>
+                <span className="text-gray-400 shrink-0 text-xs">
+                  {Number(a.price).toLocaleString()} · {a.status}
+                </span>
+              </li>
+            ))}
+            {!data.recentAds?.length && (
+              <li className="text-gray-400">{isRtl ? "لا يوجد" : "None"}</li>
+            )}
+          </ul>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-4">
+          <h2 className="font-semibold mb-3">{isRtl ? "أحدث المستخدمين" : "Recent users"}</h2>
+          <ul className="space-y-2 text-sm">
+            {(data.recentUsers || []).map((u: any) => (
+              <li key={u.id} className="flex justify-between gap-2 border-b border-gray-50 pb-2">
+                <span dir="ltr">{u.phone}</span>
+                <span className="text-xs text-gray-400">{u.role}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
-      <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-800">
-        {isRtl
-          ? "⚠️ لوحة الأدمن محمية. يجب التحقق من صلاحية ADMIN قبل الوصول لأي بيانات حساسة."
-          : "⚠️ Admin panel is protected. ADMIN role must be verified before accessing sensitive data."}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/${locale}/legal-advisor/inbox`}
+          className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50"
+        >
+          {isRtl ? "استشارات قانونية" : "Legal inbox"}
+        </Link>
+        <Link
+          href={`/${locale}/escrow`}
+          className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50"
+        >
+          {isRtl ? "سياسة الوسيط" : "Escrow policy"}
+        </Link>
+        <Link
+          href={`/${locale}/ads`}
+          className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50"
+        >
+          {isRtl ? "كل الإعلانات" : "All ads"}
+        </Link>
       </div>
     </div>
   )

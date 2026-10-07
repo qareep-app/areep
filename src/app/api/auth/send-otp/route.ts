@@ -1,45 +1,63 @@
 import { NextRequest, NextResponse } from "next/server"
-// import { prisma } from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
+import { sendSms } from "@/lib/sms"
 
-/**
- * POST /api/auth/send-otp
- * In production: generate OTP, save hash + expiry, send via SMS provider (Twilio / local Egyptian SMS).
- * For now: accepts any Egyptian number and returns success (OTP logged in dev).
- */
+const db = prisma as any
+
 export async function POST(req: NextRequest) {
   try {
-    const { phone } = await req.json()
+    const { phone: raw } = await req.json()
+    const phone = String(raw || "").replace(/\s+/g, "")
 
-    if (!phone || !/^01[0125][0-9]{8}$/.test(phone)) {
+    if (!/^01[0125][0-9]{8}$/.test(phone)) {
       return NextResponse.json(
-        { error: "رقم موبايل مصري غير صحيح" },
+        { error: "رقم موبايل مصري غير صحيح (مثال: 01012345678)" },
         { status: 400 }
       )
     }
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
 
-    // TODO: Save to DB or Redis
-    // await prisma.oTP.create({ data: { phone, code: hash(otp), expiresAt } })
+    // Invalidate old codes
+    await db.otpCode.updateMany({
+      where: { phone, used: false },
+      data: { used: true },
+    }).catch(() => {})
 
-    // TODO: Send SMS
-    // await sendSMS(phone, `رمز التحقق في قريب: ${otp}`)
+    await db.otpCode.create({
+      data: { phone, code: otp, expiresAt },
+    })
 
-    // Development only: log OTP
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[DEV OTP] ${phone} => ${otp}`)
+    const msg = `رمز التحقق في قريب: ${otp}\nصالح لمدة 5 دقائق.`
+    const sms = await sendSms(phone, msg)
+
+    if (!sms.ok) {
+      return NextResponse.json(
+        { error: "تعذر إرسال الرسالة. حاول لاحقاً.", detail: sms.error },
+        { status: 502 }
+      )
     }
 
-    return NextResponse.json({
+    const resBody: any = {
       success: true,
-      message: "OTP sent",
-      // Remove in production:
-      devOtp: process.env.NODE_ENV === "development" ? otp : undefined,
-    })
-  } catch (error) {
+      message: sms.mode === "dev"
+        ? "وضع تجريبي: لم يُضبط مزود SMS — الرمز ظاهر هنا للعرض"
+        : "تم إرسال رمز التحقق إلى موبايلك",
+      mode: sms.mode,
+    }
+
+    // Only expose OTP when no real SMS provider (demo safety)
+    if (sms.mode === "dev") {
+      resBody.devOtp = otp
+    }
+
+    return NextResponse.json(resBody)
+  } catch (error: any) {
     console.error("send-otp error:", error)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    return NextResponse.json(
+      { error: error?.message || "Server error" },
+      { status: 500 }
+    )
   }
 }

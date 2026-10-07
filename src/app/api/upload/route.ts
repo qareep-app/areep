@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 
+export const runtime = "nodejs"
+
 /**
- * POST /api/upload
- * Images + short videos as data-URL (works on Vercel without disk).
- * Prefer small files: image ≤2MB, video ≤8MB.
+ * Vercel serverless body limit ~4.5MB — keep files small.
+ * Images should be compressed on the client first.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +15,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    const isImage = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
+    const isImage = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(
+      file.type
+    )
     const isVideo = ["video/mp4", "video/webm", "video/quicktime"].includes(file.type)
 
     if (!isImage && !isVideo) {
@@ -24,20 +27,29 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const max = isVideo ? 8 * 1024 * 1024 : 2 * 1024 * 1024
+    // Hard limits under Vercel body size
+    const max = isVideo ? 3 * 1024 * 1024 : 1.5 * 1024 * 1024
     if (file.size > max) {
       return NextResponse.json(
         {
           error: isVideo
-            ? "الفيديو كبير (الحد الأقصى 8 ميجا)"
-            : "الصورة كبيرة (الحد الأقصى 2 ميجا)",
+            ? "الفيديو كبير (الحد الأقصى 3 ميجا)"
+            : "الصورة كبيرة (الحد الأقصى 1.5 ميجا بعد الضغط)",
         },
-        { status: 400 }
+        { status: 413 }
       )
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    // Extra safety: base64 expands ~33%
+    if (buffer.length > 3.2 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "الملف كبير على السيرفر — صغّره" },
+        { status: 413 }
+      )
+    }
+
     const base64 = buffer.toString("base64")
     const mime = file.type === "image/jpg" ? "image/jpeg" : file.type
     const url = `data:${mime};base64,${base64}`
@@ -48,8 +60,12 @@ export async function POST(req: NextRequest) {
       filename: file.name,
       kind: isVideo ? "video" : "image",
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Upload error:", error)
+    const msg = String(error?.message || "")
+    if (msg.includes("too large") || msg.includes("413")) {
+      return NextResponse.json({ error: "الملف كبير جداً" }, { status: 413 })
+    }
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }

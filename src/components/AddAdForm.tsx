@@ -25,6 +25,30 @@ const categories = [
   { value: "other", labelAr: "أخرى", labelEn: "Other" },
 ]
 
+
+/** Compress image in browser to stay under Vercel 4.5MB body limit */
+async function compressImage(file: File, maxSide = 1280, quality = 0.72): Promise<Blob> {
+  if (!file.type.startsWith("image/")) return file
+  const bitmap = await createImageBitmap(file)
+  let { width, height } = bitmap
+  if (width > maxSide || height > maxSide) {
+    const ratio = Math.min(maxSide / width, maxSide / height)
+    width = Math.round(width * ratio)
+    height = Math.round(height * ratio)
+  }
+  const canvas = document.createElement("canvas")
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext("2d")
+  if (!ctx) return file
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close()
+  const blob: Blob | null = await new Promise((resolve) =>
+    canvas.toBlob((b) => resolve(b), "image/jpeg", quality)
+  )
+  return blob || file
+}
+
 export default function AddAdForm({ locale }: AddAdFormProps) {
   const isRtl = locale === "ar"
   const router = useRouter()
@@ -165,13 +189,23 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
     setError("")
     try {
       for (const file of Array.from(files).slice(0, 10 - images.length)) {
-        if (file.size > 2 * 1024 * 1024) {
-          setError(isRtl ? "صورة أكبر من 2 ميجا — صغّرها" : "Image over 2MB")
+        const compressed = await compressImage(file)
+        if (compressed.size > 1.5 * 1024 * 1024) {
+          setError(isRtl ? "الصورة كبيرة حتى بعد الضغط — جرّب صورة أصغر" : "Image still too large")
           continue
         }
         const formData = new FormData()
-        formData.append("file", file)
+        formData.append(
+          "file",
+          new File([compressed], file.name.replace(/\.[^.]+$/, ".jpg"), {
+            type: "image/jpeg",
+          })
+        )
         const res = await fetch("/api/upload", { method: "POST", body: formData })
+        if (res.status === 413) {
+          setError(isRtl ? "الملف كبير على السيرفر — صغّر الصورة" : "File too large for server")
+          continue
+        }
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Upload failed")
         setImages((prev) => [...prev, data.url])
@@ -380,7 +414,7 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
                 <>
                   <Film size={32} className="text-emerald-600" />
                   <span className="text-sm font-bold text-emerald-700">{isRtl ? "إضافة فيديو" : "Add video"}</span>
-                  <span className="text-[11px] text-gray-500">{isRtl ? "MP4 / WebM حتى 8 ميجا" : "MP4/WebM up to 8MB"}</span>
+                  <span className="text-[11px] text-gray-500">{isRtl ? "MP4 / WebM حتى 3 ميجا" : "MP4/WebM up to 3MB"}</span>
                 </>
               )}
             </label>
@@ -399,13 +433,17 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
             setError("")
             try {
               for (const file of Array.from(files).slice(0, 2 - videos.length)) {
-                if (file.size > 8 * 1024 * 1024) {
-                  setError(isRtl ? "الفيديو أكبر من 8 ميجا" : "Video over 8MB")
+                if (file.size > 3 * 1024 * 1024) {
+                  setError(isRtl ? "الفيديو أكبر من 3 ميجا (حد السيرفر)" : "Video over 3MB")
                   continue
                 }
                 const formData = new FormData()
                 formData.append("file", file)
                 const res = await fetch("/api/upload", { method: "POST", body: formData })
+                if (res.status === 413) {
+                  setError(isRtl ? "الفيديو كبير على السيرفر — استخدم ملف أقل من 3 ميجا" : "Video too large — use under 3MB")
+                  continue
+                }
                 const data = await res.json()
                 if (!res.ok) throw new Error(data.error || "Upload failed")
                 setVideos((prev) => [...prev, data.url])
@@ -419,7 +457,7 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
           }}
         />
         <p className="text-xs text-gray-400 mt-1">
-          {isRtl ? "MP4 أو WebM — حد أقصى 8 ميجا — فيديوهان كحد أقصى" : "MP4/WebM — max 8MB — up to 2 videos"}
+          {isRtl ? "MP4 أو WebM — حد أقصى 3 ميجا — فيديوهان كحد أقصى" : "MP4/WebM — max 3MB — up to 2 videos"}
         </p>
       </div>
 

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
-import { getSession, setSessionCookie, clearSessionCookie } from "@/lib/session"
+import {
+  getSession,
+  attachSessionCookies,
+  clearSessionOnResponse,
+} from "@/lib/session"
 import { isAdminPhone } from "@/lib/admin"
 import { prisma } from "@/lib/prisma"
 
@@ -7,6 +11,7 @@ const db = prisma as any
 
 export async function GET() {
   let session = await getSession()
+
   if (!session) {
     return NextResponse.json({
       user: null,
@@ -14,7 +19,6 @@ export async function GET() {
     })
   }
 
-  // Live upgrade: if phone is admin but cookie says USER, fix it
   if (isAdminPhone(session.phone) && session.role !== "ADMIN") {
     try {
       await db.user.updateMany({
@@ -22,11 +26,12 @@ export async function GET() {
         data: { role: "ADMIN" },
       })
     } catch {}
-    session = {
-      ...session,
-      role: "ADMIN",
-    }
-    await setSessionCookie(session)
+    session = { ...session, role: "ADMIN" }
+    const res = NextResponse.json({
+      user: session,
+      adminPhonesConfigured: true,
+    })
+    return attachSessionCookies(res, session)
   }
 
   return NextResponse.json({
@@ -36,6 +41,6 @@ export async function GET() {
 }
 
 export async function DELETE() {
-  await clearSessionCookie()
-  return NextResponse.json({ ok: true })
+  const res = NextResponse.json({ ok: true })
+  return clearSessionOnResponse(res)
 }

@@ -55,7 +55,7 @@ export default function SellerRegisterPage() {
         body: JSON.stringify({ email }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "failed")
+      if (!res.ok) throw new Error(data.detail || data.error || "failed")
       setEmailSent(true)
       if (data.devOtp) setEmailOtp(data.devOtp)
     } catch (e: any) {
@@ -89,7 +89,7 @@ export default function SellerRegisterPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "failed")
+      if (!res.ok) throw new Error(data.detail || data.error || "failed")
       setDone(true)
     } catch (e: any) {
       setError(e.message)

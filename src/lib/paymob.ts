@@ -43,7 +43,7 @@ export async function createPaymobPayment(params: {
   items?: { name: string; amount: number; quantity: number }[]
 }) {
   const integrationId = Number(process.env.PAYMOB_INTEGRATION_ID)
-  const iframeId = process.env.PAYMOB_IFRAME_ID || "1"
+  const iframeId = process.env.PAYMOB_IFRAME_ID || "1082164"
   const amountCents = Math.round(params.amount * 100)
 
   if (!integrationId) {

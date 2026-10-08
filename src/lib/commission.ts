@@ -1,144 +1,83 @@
 /**
- * Commission calculation engine for Areep (قريب)
- * Rules are enforced strictly on the server side.
- * Never trust client-side calculations.
+ * عمولة قريب الثابتة:
+ * - افتراضي: 2% على البائع فقط لأي بيعة
+ * - استثناءات فقط:
+ *   سيارات / قطع غيار / موتسيكلات وقطعها:
+ *     مع وسيط: 2.5% بائع + 2.5% مشتري
+ *     بدون وسيط: 2% بائع فقط
+ *   عقارات إيجار: نصف شهر من كل طرف
+ *   عقارات تمليك:
+ *     مع وسيط: 2.5% + 2.5%
+ *     بدون وسيط: 2% بائع فقط
+ *
+ * مستوى التوثيق (أساسي/موثّق) يؤثر فقط على سقف قيمة الطلب — ليس نسبة العمولة.
  */
 
-export type CommissionType =
-  | "STANDARD"
-  | "CARS_PARTS"
-  | "REAL_ESTATE_RENT"
-  | "REAL_ESTATE_SALE"
-
-export interface CommissionInput {
-  amount: number // Sale/rent amount in EGP
-  commissionType: CommissionType
-  useEscrow: boolean
-  // For rent only
-  monthlyRent?: number
+export type CommissionResult = {
+  sellerPercent: number
+  buyerPercent: number
+  rentMonthsEach?: number
+  noteAr: string
+  noteEn: string
 }
 
-export interface CommissionResult {
-  sellerCommission: number
-  buyerCommission: number
-  platformFee: number // Total that goes to Areep
-  legalFee: number // Half of platform fee for real estate legal consultant
-  sellerReceives: number // Amount seller gets after deductions
-  buyerPaysTotal: number // What buyer must pay (amount + buyer commission if any)
-  breakdown: {
-    rule: string
-    details: string
-  }
-}
+export function calcCommission(opts: {
+  categorySlug?: string
+  commissionType?: string
+  allowEscrow?: boolean
+}): CommissionResult {
+  const slug = (opts.categorySlug || "").toLowerCase()
+  const type = opts.commissionType || "STANDARD"
+  const escrow = Boolean(opts.allowEscrow)
 
-/**
- * Calculate commissions according to business rules.
- * This function is the single source of truth.
- */
-export function calculateCommission(input: CommissionInput): CommissionResult {
-  const { amount, commissionType, useEscrow, monthlyRent } = input
+  const isCars =
+    type === "CARS_PARTS" ||
+    ["cars", "car-parts", "motorcycles", "motorcycle-parts"].includes(slug)
+  const isRent =
+    type === "REAL_ESTATE_RENT" || slug.includes("rent") || slug === "real-estate-rent"
+  const isSale =
+    type === "REAL_ESTATE_SALE" || slug.includes("sale") || slug === "real-estate-sale"
 
-  let sellerCommission = 0
-  let buyerCommission = 0
-  let legalFee = 0
-  let rule = ""
-  let details = ""
-
-  switch (commissionType) {
-    case "STANDARD":
-      // Fixed 2% on seller only
-      sellerCommission = amount * 0.02
-      rule = "STANDARD_2_PERCENT"
-      details = "عمولة ثابتة 2% على البائع فقط"
-      break
-
-    case "CARS_PARTS":
-      // Cars, Car Parts, Motorcycles, Motorcycle Parts
-      if (useEscrow) {
-        sellerCommission = amount * 0.025
-        buyerCommission = amount * 0.025
-        rule = "CARS_ESCROW_2.5_EACH"
-        details = "نظام وسيط قريب: 2.5% من البائع + 2.5% من المشتري"
-      } else {
-        sellerCommission = amount * 0.02
-        rule = "CARS_NO_ESCROW_2_PERCENT"
-        details = "بدون نظام وسيط: 2% على البائع فقط"
-      }
-      break
-
-    case "REAL_ESTATE_RENT":
-      // Half month from landlord + half month from tenant
-      const rent = monthlyRent || amount
-      sellerCommission = rent * 0.5 // landlord
-      buyerCommission = rent * 0.5 // tenant
-      legalFee = (sellerCommission + buyerCommission) * 0.5 // Half to legal consultant
-      rule = "RENT_HALF_MONTH_EACH"
-      details = "إيجار: نصف شهر من المؤجر + نصف شهر من المستأجر (نصف العمولة للمستشار القانوني)"
-      break
-
-    case "REAL_ESTATE_SALE":
-      if (useEscrow) {
-        sellerCommission = amount * 0.025
-        buyerCommission = amount * 0.025
-        legalFee = (sellerCommission + buyerCommission) * 0.5
-        rule = "SALE_ESCROW_2.5_EACH"
-        details = "تمليك بنظام وسيط: 2.5% بائع + 2.5% مشتري (نصف العمولة للمستشار القانوني)"
-      } else {
-        sellerCommission = amount * 0.02
-        legalFee = sellerCommission * 0.5
-        rule = "SALE_NO_ESCROW_2_PERCENT"
-        details = "تمليك بدون وسيط: 2% على البائع فقط (نصف العمولة للمستشار القانوني)"
-      }
-      break
-
-    default:
-      sellerCommission = amount * 0.02
-      rule = "FALLBACK_2_PERCENT"
-      details = "القاعدة الافتراضية 2%"
+  if (isRent) {
+    return {
+      sellerPercent: 0,
+      buyerPercent: 0,
+      rentMonthsEach: 0.5,
+      noteAr: "إيجار: نصف شهر من المؤجر + نصف شهر من المستأجر",
+      noteEn: "Rent: half month from each party",
+    }
   }
 
-  const platformFee = sellerCommission + buyerCommission
-  const sellerReceives = amount - sellerCommission
-  const buyerPaysTotal = amount + buyerCommission
+  if (isCars || isSale) {
+    if (escrow) {
+      return {
+        sellerPercent: 2.5,
+        buyerPercent: 2.5,
+        noteAr: "مع وسيط قريب: 2.5% بائع + 2.5% مشتري",
+        noteEn: "With escrow: 2.5% seller + 2.5% buyer",
+      }
+    }
+    return {
+      sellerPercent: 2,
+      buyerPercent: 0,
+      noteAr: "بدون وسيط: 2% على البائع فقط",
+      noteEn: "Without escrow: 2% seller only",
+    }
+  }
 
+  // Standard: always 2% seller only
   return {
-    sellerCommission: round(sellerCommission),
-    buyerCommission: round(buyerCommission),
-    platformFee: round(platformFee),
-    legalFee: round(legalFee),
-    sellerReceives: round(sellerReceives),
-    buyerPaysTotal: round(buyerPaysTotal),
-    breakdown: { rule, details },
+    sellerPercent: 2,
+    buyerPercent: 0,
+    noteAr: "عمولة ثابتة 2% على البائع",
+    noteEn: "Fixed 2% on seller",
   }
 }
 
-function round(value: number): number {
-  return Math.round(value * 100) / 100
-}
-
-/**
- * Categories mapping to commission types
- * Order is fixed as requested:
- * 1. Cars
- * 2. Car Parts
- * 3. Motorcycles & Tricycles
- * 4. Motorcycle/Tricycle Parts
- * 5. Real Estate (Rent & Sale)
- */
-export const CATEGORY_COMMISSION_MAP: Record<string, CommissionType> = {
-  cars: "CARS_PARTS",
-  "car-parts": "CARS_PARTS",
-  motorcycles: "CARS_PARTS",
-  "motorcycle-parts": "CARS_PARTS",
-  "real-estate-rent": "REAL_ESTATE_RENT",
-  "real-estate-sale": "REAL_ESTATE_SALE",
-  // Everything else
-  mobiles: "STANDARD",
-  electronics: "STANDARD",
-  furniture: "STANDARD",
-  fashion: "STANDARD",
-  pets: "STANDARD",
-  jobs: "STANDARD",
-  services: "STANDARD",
-  other: "STANDARD",
+/** سقف قيمة الطلب حسب مستوى التوثيق — لا يغيّر العمولة */
+export function maxOrderValueForBadge(badge: string | null | undefined): number | null {
+  // BASIC = 25000 EGP ceiling; VERIFIED = unlimited
+  if (badge === "BASIC") return 25000
+  if (badge === "VERIFIED" || badge === "VERIFIED_LEGAL" || badge === "PRO") return null
+  return 25000 // default basic ceiling for new sellers
 }

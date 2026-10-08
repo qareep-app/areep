@@ -158,6 +158,12 @@ export default function Header({ locale = "ar" }: HeaderProps) {
             </Link>
 
             <Link
+              href={`/${locale}/seller/register`}
+              className="hidden md:inline-flex items-center px-3 py-2 rounded-full text-xs font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+            >
+              {isRtl ? "سجّل كبائع" : "Become seller"}
+            </Link>
+            <Link
               href={`/${locale}/ads/new`}
               className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 rounded-full font-medium text-sm shadow-sm ms-1"
             >

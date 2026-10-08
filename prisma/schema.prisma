@@ -518,3 +518,24 @@ model SellerApplication {
   @@index([status])
   @@index([phone])
 }
+
+
+model LegalAdvisorApplication {
+  id              String   @id @default(cuid())
+  userId          String?
+  phone           String
+  email           String?
+  fullName        String
+  syndicateNo     String?
+  certificateUrl  String?
+  syndicateCardUrl String?
+  nationalId      String?
+  bio             String?
+  status          String   @default("PENDING")
+  adminNote       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([phone])
+  @@index([status])
+}

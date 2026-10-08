@@ -60,7 +60,11 @@ export default function PayButton({
       )
       console.log("Paymob response", data)
     } catch (e: any) {
-      setMsg(e.message)
+      setMsg(
+        String(e.message || "").includes("duplicate")
+          ? (isRtl ? "أعد المحاولة — تم توليد رقم طلب جديد" : "Retry — new order id")
+          : e.message
+      )
     } finally {
       setLoading(false)
     }

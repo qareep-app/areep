@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { setSessionCookie } from "@/lib/session"
+import { isAdminPhone, normalizePhone } from "@/lib/admin"
 
 const db = prisma as any
 
 export async function POST(req: NextRequest) {
   try {
     const { phone: raw, otp } = await req.json()
-    const phone = String(raw || "").replace(/\s+/g, "")
+    const phone = normalizePhone(String(raw || ""))
     const code = String(otp || "").trim()
 
     if (!phone || !code) {
       return NextResponse.json({ error: "Missing phone or otp" }, { status: 400 })
     }
 
+    // Try exact + normalized lookup for OTP
     const record = await db.otpCode.findFirst({
       where: {
-        phone,
+        OR: [{ phone }, { phone: raw }],
         code,
         used: false,
         expiresAt: { gt: new Date() },
@@ -36,42 +38,52 @@ export async function POST(req: NextRequest) {
       data: { used: true },
     })
 
-    const adminPhones = (process.env.ADMIN_PHONES || "")
-      .split(/[,;\s]+/)
-      .map((s: string) => s.trim())
-      .filter(Boolean)
+    const admin = isAdminPhone(phone)
+    const role = admin ? "ADMIN" : "USER"
 
-    const isAdmin = adminPhones.includes(phone)
-    const role = isAdmin ? "ADMIN" : undefined
-
-    const user = await db.user.upsert({
-      where: { phone },
-      update: {
-        lastActiveAt: new Date(),
-        ...(isAdmin ? { role: "ADMIN" } : {}),
-      },
-      create: {
-        phone,
-        name: null,
-        role: isAdmin ? "ADMIN" : "USER",
+    // Upsert by normalized phone; also try find existing with variants
+    let user = await db.user.findFirst({
+      where: {
+        OR: [
+          { phone },
+          { phone: String(raw || "").replace(/\s/g, "") },
+        ],
       },
     })
 
-    // Ensure role field is ADMIN if list matches (even if upsert missed)
-    let finalRole = user.role
-    if (isAdmin && user.role !== "ADMIN") {
-      const updated = await db.user.update({
+    if (user) {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: {
+          phone, // normalize stored phone
+          lastActiveAt: new Date(),
+          role: admin ? "ADMIN" : user.role === "ADMIN" && !admin ? "USER" : user.role,
+          ...(admin ? { role: "ADMIN" } : {}),
+        },
+      })
+    } else {
+      user = await db.user.create({
+        data: {
+          phone,
+          name: null,
+          role,
+        },
+      })
+    }
+
+    // Final force admin
+    if (admin && user.role !== "ADMIN") {
+      user = await db.user.update({
         where: { id: user.id },
         data: { role: "ADMIN" },
       })
-      finalRole = updated.role
     }
 
     await setSessionCookie({
       id: user.id,
       phone: user.phone,
       name: user.name,
-      role: finalRole,
+      role: user.role,
     })
 
     return NextResponse.json({
@@ -80,7 +92,12 @@ export async function POST(req: NextRequest) {
         id: user.id,
         phone: user.phone,
         name: user.name,
-        role: finalRole,
+        role: user.role,
+      },
+      debug: {
+        isAdminPhone: admin,
+        // does not leak full ADMIN_PHONES list
+        adminPhonesConfigured: Boolean(process.env.ADMIN_PHONES?.trim()),
       },
     })
   } catch (error: any) {

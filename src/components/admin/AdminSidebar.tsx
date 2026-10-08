@@ -21,6 +21,7 @@ interface AdminSidebarProps {
 const items = [
   { id: "overview", href: "/admin", icon: LayoutDashboard, ar: "نظرة عامة", en: "Overview" },
   { id: "users", href: "/admin/users", icon: Users, ar: "المستخدمين", en: "Users" },
+  { id: "sellers", href: "/admin/sellers", icon: Users, ar: "طلبات البائعين", en: "Seller apps" },
   { id: "ads", href: "/admin/ads", icon: Megaphone, ar: "الإعلانات", en: "Ads" },
   { id: "transactions", href: "/admin/transactions", icon: CreditCard, ar: "المعاملات", en: "Transactions" },
   { id: "contracts", href: "/admin/contracts", icon: FileText, ar: "العقود", en: "Contracts" },

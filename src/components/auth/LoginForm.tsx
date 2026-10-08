@@ -32,6 +32,7 @@ export default function LoginForm({ locale }: Props) {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone }),
       })
       const data = await res.json()
@@ -69,19 +70,21 @@ export default function LoginForm({ locale }: Props) {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone, otp }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed")
+      if (!res.ok) throw new Error(data.error || data.message || "Failed")
       try {
         localStorage.setItem("areep_user", JSON.stringify(data.user))
       } catch {}
-      if (data.user?.role === "ADMIN") {
-        router.push(`/${locale}/admin`)
-      } else {
-        router.push(`/${locale}/dashboard`)
-      }
-      router.refresh()
+      // Hard navigation so browser applies Set-Cookie before next page
+      const dest =
+        data.user?.role === "ADMIN"
+          ? `/${locale}/admin`
+          : `/${locale}/dashboard`
+      window.location.href = dest
+      return
     } catch (e: any) {
       setError(e.message)
     } finally {

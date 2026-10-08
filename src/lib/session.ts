@@ -39,7 +39,7 @@ export function decodeSession(token: string | undefined | null): SessionUser | n
 
 const cookieOpts = {
   httpOnly: true as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
   sameSite: "lax" as const,
   path: "/",
   maxAge: 60 * 60 * 24 * 30,

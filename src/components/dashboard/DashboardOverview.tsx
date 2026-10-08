@@ -12,8 +12,13 @@ export default function DashboardOverview({ locale }: DashboardOverviewProps) {
   const isRtl = locale === "ar"
   const [ads, setAds] = useState<any[]>([])
   const [stats, setStats] = useState({ ads: 0, views: 0 })
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setIsAdmin(d.user?.role === "ADMIN"))
+      .catch(() => {})
     fetch("/api/ads?limit=5")
       .then((r) => r.json())
       .then((data) => {
@@ -38,6 +43,15 @@ export default function DashboardOverview({ locale }: DashboardOverviewProps) {
 
   return (
     <div className="space-y-6">
+      {isAdmin && (
+        <Link
+          href={`/${locale}/admin`}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+        >
+          <span>{isRtl ? "أنت أدمن — فتح لوحة تحكم الموقع" : "You are admin — open site control panel"}</span>
+          <span className="text-emerald-700">←</span>
+        </Link>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{isRtl ? "مرحباً 👋" : "Welcome 👋"}</h1>

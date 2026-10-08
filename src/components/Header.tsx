@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X, Scale,
+  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X, Scale, Shield,
 } from "lucide-react"
 
 interface HeaderProps {
@@ -28,8 +28,17 @@ export default function Header({ locale = "ar" }: HeaderProps) {
   const [q, setQ] = useState("")
   const [dark, setDark] = useState(false)
   const [open, setOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
+  
   useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setIsAdmin(d.user?.role === "ADMIN"))
+      .catch(() => setIsAdmin(false))
+  }, [])
+
+useEffect(() => {
     try {
       const saved = localStorage.getItem("areep-theme")
       const preferDark =
@@ -140,6 +149,17 @@ export default function Header({ locale = "ar" }: HeaderProps) {
             >
               <Scale size={20} />
             </Link>
+
+            {isAdmin && (
+              <Link
+                href={`/${locale}/admin`}
+                className="p-2 rounded-full hover:bg-emerald-50 text-emerald-700 hidden sm:inline-flex"
+                aria-label="admin"
+                title={isRtl ? "لوحة الأدمن" : "Admin"}
+              >
+                <Shield size={20} />
+              </Link>
+            )}
 
             <Link
               href={`/${locale}/dashboard`}

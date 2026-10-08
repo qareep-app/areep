@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     })
 
-    // Demo fallback: accept 000000 only if no provider and no record (optional)
     if (!record) {
       return NextResponse.json(
         { error: "رمز غير صحيح أو منتهي الصلاحية" },
@@ -37,28 +36,42 @@ export async function POST(req: NextRequest) {
       data: { used: true },
     })
 
-    const adminPhones = (process.env.ADMIN_PHONES || "01000000001")
-      .split(",")
-      .map((s) => s.trim())
+    const adminPhones = (process.env.ADMIN_PHONES || "")
+      .split(/[,;\s]+/)
+      .map((s: string) => s.trim())
       .filter(Boolean)
 
-    const role = adminPhones.includes(phone) ? "ADMIN" : "USER"
+    const isAdmin = adminPhones.includes(phone)
+    const role = isAdmin ? "ADMIN" : undefined
 
     const user = await db.user.upsert({
       where: { phone },
-      update: { lastActiveAt: new Date(), ...(role === "ADMIN" ? { role: "ADMIN" } : {}) },
+      update: {
+        lastActiveAt: new Date(),
+        ...(isAdmin ? { role: "ADMIN" } : {}),
+      },
       create: {
         phone,
         name: null,
-        role,
+        role: isAdmin ? "ADMIN" : "USER",
       },
     })
+
+    // Ensure role field is ADMIN if list matches (even if upsert missed)
+    let finalRole = user.role
+    if (isAdmin && user.role !== "ADMIN") {
+      const updated = await db.user.update({
+        where: { id: user.id },
+        data: { role: "ADMIN" },
+      })
+      finalRole = updated.role
+    }
 
     await setSessionCookie({
       id: user.id,
       phone: user.phone,
       name: user.name,
-      role: user.role,
+      role: finalRole,
     })
 
     return NextResponse.json({
@@ -67,7 +80,7 @@ export async function POST(req: NextRequest) {
         id: user.id,
         phone: user.phone,
         name: user.name,
-        role: user.role,
+        role: finalRole,
       },
     })
   } catch (error: any) {

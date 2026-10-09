@@ -2,22 +2,28 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { attachSessionCookies } from "@/lib/session"
 import { isAdminPhone, normalizePhone } from "@/lib/admin"
+import { akedlyVerifyOtp } from "@/lib/akedly"
 import crypto from "crypto"
 
 const db = prisma as any
 const SECRET = process.env.SESSION_SECRET || "areep-demo-secret-change-me"
 
-function readOtpCookie(raw: string | undefined, phone: string, code: string): boolean {
-  if (!raw) return false
+function parseOtpCookie(raw: string | undefined) {
+  if (!raw) return null
   try {
     const data = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"))
-    if (data.phone !== phone || data.code !== code) return false
-    if (Date.now() > Number(data.exp)) return false
-    const payload = `${data.phone}.${data.code}.${data.exp}`
+    const payload = `${data.phone}.${data.code}.${data.exp}.${data.extra || ""}`
     const sig = crypto.createHmac("sha256", SECRET).update(payload).digest("hex")
-    return sig === data.sig
+    if (sig !== data.sig) return null
+    if (Date.now() > Number(data.exp)) return null
+    return data as {
+      phone: string
+      code: string
+      exp: number
+      extra?: string
+    }
   } catch {
-    return false
+    return null
   }
 }
 
@@ -32,10 +38,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing phone or otp" }, { status: 400 })
     }
 
-    const otpCookie = req.cookies.get("areep_otp")?.value
-    let valid = readOtpCookie(otpCookie, phone, code)
+    const cookieData = parseOtpCookie(req.cookies.get("areep_otp")?.value)
+    let valid = false
 
-    // Fallback: DB OTP if cookie missing
+    if (cookieData && cookieData.phone === phone) {
+      if (cookieData.code === "AKEDLY" && cookieData.extra) {
+        const [transactionID, transactionReqID] = String(cookieData.extra).split("|")
+        const v = await akedlyVerifyOtp({
+          transactionID,
+          otp: code,
+          transactionReqID: transactionReqID || undefined,
+        })
+        valid = v.ok
+        if (!v.ok) {
+          return NextResponse.json(
+            { error: v.error || "رمز غير صحيح" },
+            { status: 401 }
+          )
+        }
+      } else if (cookieData.code === code) {
+        valid = true
+      }
+    }
+
+    // DB fallback for local OTP
     if (!valid) {
       try {
         const record = await db.otpCode.findFirst({
@@ -54,9 +80,7 @@ export async function POST(req: NextRequest) {
             data: { used: true },
           })
         }
-      } catch (e) {
-        console.error("otp db fallback", e)
-      }
+      } catch {}
     }
 
     if (!valid) {
@@ -67,7 +91,6 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = isAdminPhone(phone)
-
     let user: any = null
     try {
       user = await db.user.findFirst({
@@ -91,9 +114,7 @@ export async function POST(req: NextRequest) {
           },
         })
       }
-    } catch (dbErr: any) {
-      // DB down — still allow session for admin testing
-      console.error("user db error", dbErr?.message)
+    } catch {
       user = {
         id: `tmp_${phone}`,
         phone,
@@ -101,7 +122,6 @@ export async function POST(req: NextRequest) {
         role: admin ? "ADMIN" : "USER",
       }
     }
-
     if (admin) user.role = "ADMIN"
 
     const sessionUser = {
@@ -114,20 +134,9 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       success: true,
       user: sessionUser,
-      debug: {
-        isAdminPhone: admin,
-        adminPhonesConfigured: Boolean(process.env.ADMIN_PHONES?.trim()),
-        authVia: otpCookie ? "cookie" : "db",
-      },
+      debug: { isAdminPhone: admin },
     })
-
-    // clear otp cookie
-    res.cookies.set("areep_otp", "", {
-      httpOnly: true,
-      path: "/",
-      maxAge: 0,
-    })
-
+    res.cookies.set("areep_otp", "", { path: "/", maxAge: 0 })
     return attachSessionCookies(res, sessionUser)
   } catch (error: any) {
     console.error("verify-otp error:", error)

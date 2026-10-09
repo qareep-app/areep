@@ -69,12 +69,22 @@ export async function POST(req: NextRequest) {
       (result as any).iframe_url ||
       null
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       ok: true,
       orderId,
       iframeUrl,
       intention: result,
     })
+    if (type === "package" && referenceId) {
+      res.cookies.set("areep_pending_pkg", `${referenceId}|${uid}`, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production" || process.env.VERCEL === "1",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60,
+      })
+    }
+    return res
   } catch (e: any) {
     console.error("paymob create", e)
     return NextResponse.json({ error: e?.message || "Paymob error" }, { status: 500 })

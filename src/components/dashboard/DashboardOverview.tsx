@@ -13,13 +13,19 @@ export default function DashboardOverview({ locale }: DashboardOverviewProps) {
   const [ads, setAds] = useState<any[]>([])
   const [stats, setStats] = useState({ ads: 0, views: 0 })
   const [isAdmin, setIsAdmin] = useState(false)
+  const [userName, setUserName] = useState<string | null>(null)
+  const [userPhone, setUserPhone] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { credentials: "include" })
       .then((r) => r.json())
-      .then((d) => setIsAdmin(d.user?.role === "ADMIN"))
+      .then((d) => {
+        setIsAdmin(d.user?.role === "ADMIN")
+        setUserName(d.user?.name || null)
+        setUserPhone(d.user?.phone || null)
+      })
       .catch(() => {})
-    fetch("/api/ads?limit=5")
+    fetch("/api/ads?mine=1&limit=10", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         if (data.success) {
@@ -54,7 +60,7 @@ export default function DashboardOverview({ locale }: DashboardOverviewProps) {
       )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isRtl ? "مرحباً 👋" : "Welcome 👋"}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{isRtl ? `مرحباً${userName ? " " + userName : userPhone ? " " + userPhone : ""} 👋` : `Welcome${userName ? " " + userName : ""} 👋`}</h1>
           <p className="text-sm text-gray-500 mt-1">
             {isRtl ? "إليك ملخص نشاطك على قريب" : "Here's a summary of your activity on Areep"}
           </p>

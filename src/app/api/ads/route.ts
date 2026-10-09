@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
+import { getSession } from "@/lib/session"
 
 /**
- * POST /api/ads - Create a new ad
- * GET /api/ads - List ads (optional filters)
+ * POST /api/ads - Create a new ad (requires login)
+ * GET /api/ads - List ads; ?mine=1 = only current user's ads
  */
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session?.id) {
+      return NextResponse.json(
+        { error: "سجّل دخول أولاً لنشر إعلان" },
+        { status: 401 }
+      )
+    }
+
     const body = await req.json()
     const {
       titleAr,
@@ -24,7 +32,6 @@ export async function POST(req: NextRequest) {
       condition,
       images,
       videos,
-      userId, // temporary until full auth
     } = body
 
     if (!titleAr || !descriptionAr || !price || !categorySlug || !city) {
@@ -34,31 +41,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Find category
     const category = await prisma.category.findUnique({
       where: { slug: categorySlug },
     })
-
     if (!category) {
       return NextResponse.json({ error: "الفئة غير موجودة" }, { status: 400 })
     }
 
-    // Ensure we have a user (dev fallback: create guest user by phone or use first admin)
-    let user = userId
-      ? await prisma.user.findUnique({ where: { id: userId } })
-      : null
-
-    if (!user) {
-      // Create or get a temporary guest user for testing
-      user = await prisma.user.upsert({
-        where: { phone: "01000000000" },
+    // Ensure user exists in DB (session id might be tmp_ for offline)
+    let userId = session.id
+    if (userId.startsWith("tmp_")) {
+      const phone = session.phone
+      const u = await prisma.user.upsert({
+        where: { phone },
         update: {},
         create: {
-          phone: "01000000000",
-          name: "مستخدم تجريبي",
-          role: "USER",
+          phone,
+          name: session.name || null,
+          role: session.role === "ADMIN" ? "ADMIN" : "USER",
         },
       })
+      userId = u.id
     }
 
     const ad = await (prisma as any).ad.create({
@@ -79,7 +82,7 @@ export async function POST(req: NextRequest) {
         images: Array.isArray(images) ? images : [],
         videos: Array.isArray(videos) ? videos : [],
         categoryId: category.id,
-        userId: user.id,
+        userId,
       },
       include: {
         category: true,
@@ -108,7 +111,22 @@ export async function GET(req: NextRequest) {
     const max = searchParams.get("max")
     const sort = searchParams.get("sort") || "newest"
     const brand = searchParams.get("brand")
+    const mine = searchParams.get("mine") === "1" || searchParams.get("mine") === "true"
     const limit = Math.min(Number(searchParams.get("limit") || 20), 50)
+
+    let ownerUserId: string | null = null
+    if (mine) {
+      const session = await getSession()
+      if (!session?.id) {
+        return NextResponse.json({ success: true, ads: [], mine: true })
+      }
+      ownerUserId = session.id
+      // resolve tmp_ ids
+      if (ownerUserId.startsWith("tmp_")) {
+        const u = await prisma.user.findUnique({ where: { phone: session.phone } }).catch(() => null)
+        ownerUserId = u?.id || ownerUserId
+      }
+    }
 
     const priceFilter: any = {}
     if (min != null && min !== "" && !Number.isNaN(Number(min))) priceFilter.gte = Number(min)
@@ -126,12 +144,14 @@ export async function GET(req: NextRequest) {
     let orderBy: any = [{ isFeatured: "desc" }, { createdAt: "desc" }]
     if (sort === "price_asc") orderBy = [{ price: "asc" }]
     if (sort === "price_desc") orderBy = [{ price: "desc" }]
-    // nearby: still newest until geo sort is wired
     if (sort === "nearby") orderBy = [{ createdAt: "desc" }]
 
     const ads = await prisma.ad.findMany({
       where: {
-        status: "ACTIVE",
+        // For "my ads" show all statuses of this user; public list only ACTIVE
+        ...(mine
+          ? { userId: ownerUserId! }
+          : { status: "ACTIVE" }),
         ...(category ? { category: { slug: category } } : {}),
         ...(city ? { city: { contains: city, mode: "insensitive" } } : {}),
         ...(gov ? { city: { contains: gov, mode: "insensitive" } } : {}),
@@ -154,7 +174,7 @@ export async function GET(req: NextRequest) {
       take: limit,
     })
 
-    return NextResponse.json({ success: true, ads })
+    return NextResponse.json({ success: true, ads, mine })
   } catch (error: any) {
     console.error("List ads error:", error)
     return NextResponse.json(

@@ -15,7 +15,7 @@ export default function MyAdsList({ locale }: MyAdsListProps) {
 
   const loadAds = () => {
     setLoading(true)
-    fetch("/api/ads?limit=50")
+    fetch("/api/ads?mine=1&limit=50", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setAds(data.ads || [])

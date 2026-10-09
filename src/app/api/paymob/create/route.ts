@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const amount = Number(body.amount)
     const referenceId = String(body.referenceId || "")
 
-    if (!["escrow", "commission", "legal"].includes(type)) {
+    if (!["escrow", "commission", "legal", "package"].includes(type)) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 })
     }
     if (!amount || amount < 1) {
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       escrow: "دفع وسيط قريب",
       commission: "عمولة منصة قريب",
       legal: "أتعاب استشارة قانونية",
+      package: "اشتراك باقة قريب",
     }
 
     const result = await createPaymobIntention({

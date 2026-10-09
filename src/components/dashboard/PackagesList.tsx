@@ -40,8 +40,8 @@ const packages = [
     nameAr: "معارض سيارات",
     nameEn: "Car Dealers",
     price: 799,
-    featuresAr: ["إعلانات غير محدودة", "20 إعلان مميز (30 يوم)", "صفحة خاصة للمعرض", "نظام وسيط مخفض"],
-    featuresEn: ["Unlimited ads", "20 featured (30 days)", "Dealer page", "Discounted escrow"],
+    featuresAr: ["إعلانات غير محدودة", "20 إعلان مميز (30 يوم)", "صفحة خاصة للمعرض"],
+    featuresEn: ["Unlimited ads", "20 featured (30 days)", "Dealer page"],
     popular: false,
   },
   {
@@ -49,8 +49,8 @@ const packages = [
     nameAr: "عقارات محترفة",
     nameEn: "Real Estate Pro",
     price: 599,
-    featuresAr: ["إعلانات غير محدودة", "15 إعلان مميز (30 يوم)", "ربط بمستشار قانوني", "عقود إلكترونية"],
-    featuresEn: ["Unlimited ads", "15 featured (30 days)", "Legal link", "E-contracts"],
+    featuresAr: ["إعلانات غير محدودة", "15 إعلان مميز (30 يوم)", "ربط بمستشار قانوني"],
+    featuresEn: ["Unlimited ads", "15 featured (30 days)", "Legal link"],
     popular: false,
   },
 ]
@@ -65,25 +65,30 @@ export default function PackagesList({ locale }: PackagesListProps) {
     setMsg("")
     setBusy(packageId)
     try {
-      const res = await fetch("/api/packages/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "فشل الاشتراك")
-
-      if (data.free) {
+      if (price === 0) {
         setCurrent("free")
         setMsg(isRtl ? "تم تفعيل الباقة المجانية" : "Free plan activated")
         return
       }
+
+      const res = await fetch("/api/paymob/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type: "package",
+          amount: price,
+          referenceId: packageId,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "فشل إنشاء الدفع")
+
       if (data.iframeUrl) {
         window.location.href = data.iframeUrl
         return
       }
-      setMsg(isRtl ? "تم إنشاء طلب الدفع — أكمل من Paymob" : "Payment created")
-      setCurrent(packageId)
+      setMsg(isRtl ? "تم إنشاء الطلب لكن رابط الدفع غير متاح — راجع مفاتيح Paymob" : "No payment URL")
     } catch (e: any) {
       setMsg(e.message)
     } finally {
@@ -98,7 +103,9 @@ export default function PackagesList({ locale }: PackagesListProps) {
           {isRtl ? "الباقات والاشتراكات" : "Packages & Subscriptions"}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          {isRtl ? "اختر الباقة المناسبة لنشاطك" : "Choose the package that fits your activity"}
+          {isRtl
+            ? "الدفع عبر Paymob: بطاقات بنكية، محافظ إلكترونية حسب تفعيل حسابك"
+            : "Pay via Paymob: cards and wallets per your merchant setup"}
         </p>
       </div>
 
@@ -124,9 +131,7 @@ export default function PackagesList({ locale }: PackagesListProps) {
                   {isRtl ? "الأكثر طلباً" : "Popular"}
                 </span>
               )}
-              <h3 className="text-lg font-bold text-gray-900">
-                {isRtl ? pkg.nameAr : pkg.nameEn}
-              </h3>
+              <h3 className="text-lg font-bold">{isRtl ? pkg.nameAr : pkg.nameEn}</h3>
               <div className="mt-2 mb-4">
                 {pkg.price === 0 ? (
                   <span className="text-3xl font-bold">{isRtl ? "مجاناً" : "Free"}</span>
@@ -151,14 +156,14 @@ export default function PackagesList({ locale }: PackagesListProps) {
                 onClick={() => subscribe(pkg.id, pkg.price)}
                 className={`w-full h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${
                   isCurrent
-                    ? "bg-gray-100 text-gray-500 cursor-default"
+                    ? "bg-gray-100 text-gray-500"
                     : "bg-emerald-600 hover:bg-emerald-700 text-white"
                 }`}
               >
                 {busy === pkg.id ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : isCurrent ? (
-                  isRtl ? "الباقة الحالية" : "Current plan"
+                  isRtl ? "الباقة الحالية" : "Current"
                 ) : (
                   isRtl ? "اشترك الآن" : "Subscribe"
                 )}
@@ -166,6 +171,22 @@ export default function PackagesList({ locale }: PackagesListProps) {
             </div>
           )
         })}
+      </div>
+
+      <div className="bg-white rounded-2xl border p-5 text-sm text-gray-600 space-y-2">
+        <p className="font-semibold text-gray-800">
+          {isRtl ? "طرق الدفع المتاحة عبر Paymob" : "Payment methods via Paymob"}
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>{isRtl ? "بطاقات بنكية (فيزا / ماستركارد / ميزة)" : "Bank cards (Visa / Mastercard / Meeza)"}</li>
+          <li>{isRtl ? "محافظ إلكترونية (حسب تفعيل حسابك: فودافون كاش، انستاباي…)" : "Wallets if enabled on your Paymob account"}</li>
+          <li>{isRtl ? "فوري وكود دفع — لو مفعّلين في لوحة Paymob" : "Fawry / cash codes if enabled"}</li>
+        </ul>
+        <p className="text-xs text-gray-400">
+          {isRtl
+            ? "كل طريقة تظهر في صفحة الدفع حسب الـ Integration المربوط بحساب Paymob الخاص بك."
+            : "Methods shown depend on integrations enabled on your Paymob merchant account."}
+        </p>
       </div>
     </div>
   )

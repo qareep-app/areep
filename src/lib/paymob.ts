@@ -103,6 +103,9 @@ export async function createPaymobPayment(params: {
       currency: "EGP",
       integration_id: integrationId,
       lock_order_when_paid: true,
+      redirection_url:
+        (process.env.NEXT_PUBLIC_APP_URL || "https://areep.vercel.app").replace(/\/$/, "") +
+        "/ar/payment/result",
     }),
   })
   const keyData = await keyRes.json().catch(() => ({}))

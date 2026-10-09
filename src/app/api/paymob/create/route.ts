@@ -35,7 +35,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const orderId = `${type}_${referenceId || "x"}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const uid = session?.id || "guest"
+    const orderId =
+      type === "package"
+        ? `package_${referenceId || "basic"}_${uid}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+        : `${type}_${referenceId || "x"}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const labels: Record<string, string> = {
       escrow: "دفع وسيط قريب",
       commission: "عمولة منصة قريب",

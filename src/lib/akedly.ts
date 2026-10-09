@@ -1,14 +1,8 @@
 /**
- * Akedly OTP (Egypt-friendly: WhatsApp / SMS / Telegram)
- * Env:
- * - AKEDLY_API_KEY
- * - AKEDLY_PIPELINE_ID
- *
- * Uses V1 create + activate + verify (no PoW required on server).
- * Docs: https://docs.akedly.io/
+ * Akedly OTP
+ * Env: AKEDLY_API_KEY, AKEDLY_PIPELINE_ID
+ * Tries V1 create+activate, then V1.2 /transactions/send
  */
-
-const BASE = "https://api.akedly.io/api/v1"
 
 function e164Egypt(phone: string) {
   const p = phone.replace(/\s/g, "")
@@ -24,24 +18,12 @@ export function isAkedlyConfigured() {
   )
 }
 
-/** Create + activate → OTP delivered. Returns transaction ids for verify. */
-export async function akedlySendOtp(phone: string): Promise<{
-  ok: boolean
-  transactionID?: string
-  transactionReqID?: string
-  channels?: string[]
-  error?: string
-}> {
-  const APIKey = process.env.AKEDLY_API_KEY?.trim()
-  const pipelineID = process.env.AKEDLY_PIPELINE_ID?.trim()
-  if (!APIKey || !pipelineID) {
-    return { ok: false, error: "AKEDLY_API_KEY or AKEDLY_PIPELINE_ID missing" }
-  }
-
-  const phoneNumber = e164Egypt(phone)
-
-  // Step 1: create
-  const createRes = await fetch(`${BASE}/transactions`, {
+async function tryV1(
+  APIKey: string,
+  pipelineID: string,
+  phoneNumber: string
+): Promise<{ ok: boolean; transactionID?: string; transactionReqID?: string; channels?: string[]; error?: string }> {
+  const createRes = await fetch("https://api.akedly.io/api/v1/transactions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -55,7 +37,7 @@ export async function akedlySendOtp(phone: string): Promise<{
   if (!createRes.ok) {
     return {
       ok: false,
-      error: createData?.message || JSON.stringify(createData),
+      error: `V1 create: ${createData?.message || createData?.error || JSON.stringify(createData)} [${createRes.status}]`,
     }
   }
 
@@ -66,33 +48,98 @@ export async function akedlySendOtp(phone: string): Promise<{
     createData?.data?._id
 
   if (!transactionID) {
-    return { ok: false, error: "No transactionID from Akedly create" }
+    return { ok: false, error: `V1 create: no transactionID ${JSON.stringify(createData)}` }
   }
 
-  // Step 2: activate (sends OTP)
-  const actRes = await fetch(`${BASE}/transactions/activate/${transactionID}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  })
+  const actRes = await fetch(
+    `https://api.akedly.io/api/v1/transactions/activate/${transactionID}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }
+  )
   const actData = await actRes.json().catch(() => ({}))
   if (!actRes.ok) {
     return {
       ok: false,
-      error: actData?.message || JSON.stringify(actData),
+      error: `V1 activate: ${actData?.message || JSON.stringify(actData)} [${actRes.status}]`,
     }
   }
-
-  const transactionReqID =
-    actData?.data?._id ||
-    actData?.data?.transactionReqID ||
-    createData?.data?.transactionReqID
 
   return {
     ok: true,
     transactionID: String(transactionID),
-    transactionReqID: transactionReqID ? String(transactionReqID) : undefined,
+    transactionReqID: String(
+      actData?.data?._id || actData?.data?.transactionReqID || ""
+    ),
     channels: actData?.channels || createData?.channels,
+  }
+}
+
+async function tryV12(
+  APIKey: string,
+  pipelineID: string,
+  phoneNumber: string
+): Promise<{ ok: boolean; transactionID?: string; transactionReqID?: string; channels?: string[]; error?: string }> {
+  const res = await fetch("https://api.akedly.io/api/v1.2/transactions/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-end-user-ip": "127.0.0.1",
+    },
+    body: JSON.stringify({
+      APIKey,
+      pipelineID,
+      verificationAddress: { phoneNumber },
+      digits: 6,
+    }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: `V1.2 send: ${data?.message || data?.error || JSON.stringify(data)} [${res.status}]`,
+    }
+  }
+  const transactionID =
+    data?.data?.transactionID || data?.transactionID || data?.data?.mainTransactionID
+  if (!transactionID) {
+    return { ok: false, error: `V1.2: no transactionID ${JSON.stringify(data)}` }
+  }
+  return {
+    ok: true,
+    transactionID: String(transactionID),
+    transactionReqID: data?.data?.transactionReqID
+      ? String(data.data.transactionReqID)
+      : undefined,
+    channels: data?.data?.channels || data?.channels,
+  }
+}
+
+export async function akedlySendOtp(phone: string): Promise<{
+  ok: boolean
+  transactionID?: string
+  transactionReqID?: string
+  channels?: string[]
+  error?: string
+}> {
+  const APIKey = process.env.AKEDLY_API_KEY?.trim()
+  const pipelineID = process.env.AKEDLY_PIPELINE_ID?.trim()
+  if (!APIKey || !pipelineID) {
+    return { ok: false, error: "AKEDLY_API_KEY or AKEDLY_PIPELINE_ID missing on server" }
+  }
+
+  const phoneNumber = e164Egypt(phone)
+  const v1 = await tryV1(APIKey, pipelineID, phoneNumber)
+  if (v1.ok) return v1
+
+  const v12 = await tryV12(APIKey, pipelineID, phoneNumber)
+  if (v12.ok) return v12
+
+  return {
+    ok: false,
+    error: `${v1.error} | ${v12.error}`,
   }
 }
 
@@ -107,7 +154,8 @@ export async function akedlyVerifyOtp(params: {
     return { ok: false, error: "Akedly not configured" }
   }
 
-  const res = await fetch(`${BASE}/transactions/verify`, {
+  // try v1 verify
+  const res = await fetch("https://api.akedly.io/api/v1/transactions/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -121,15 +169,33 @@ export async function akedlyVerifyOtp(params: {
     }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    return { ok: false, error: data?.message || JSON.stringify(data) }
+  if (res.ok && (data?.status === "success" || data?.data?.status === "Verified" || data?.data?.status === "verified")) {
+    return { ok: true }
   }
-  const status = (data?.status || data?.data?.status || "").toString().toLowerCase()
-  if (status && status !== "success" && status !== "verified" && status !== "pending") {
-    // some APIs return success at top level only
-    if (data?.status !== "success") {
-      return { ok: false, error: data?.message || "Verify failed" }
-    }
+  if (res.ok && data?.status === "success") return { ok: true }
+
+  // v1.2 verify path if documented similarly
+  const res2 = await fetch("https://api.akedly.io/api/v1.2/transactions/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      APIKey,
+      pipelineID,
+      transactionID: params.transactionID,
+      otp: params.otp,
+    }),
+  })
+  const data2 = await res2.json().catch(() => ({}))
+  if (res2.ok && (data2?.status === "success" || data2?.data?.verified)) {
+    return { ok: true }
   }
-  return { ok: true }
+
+  return {
+    ok: false,
+    error:
+      data2?.message ||
+      data?.message ||
+      JSON.stringify(data2 || data) ||
+      "Verify failed",
+  }
 }

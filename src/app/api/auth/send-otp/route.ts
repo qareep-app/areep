@@ -31,7 +31,10 @@ export async function POST(req: NextRequest) {
       const sent = await akedlySendOtp(phone)
       if (!sent.ok) {
         return NextResponse.json(
-          { error: "تعذر إرسال الرمز عبر Akedly", detail: sent.error },
+          {
+            error: "تعذر إرسال الرمز عبر Akedly: " + (sent.error || "").slice(0, 280),
+            detail: sent.error,
+          },
           { status: 502 }
         )
       }

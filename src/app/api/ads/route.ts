@@ -113,6 +113,7 @@ export async function GET(req: NextRequest) {
     const max = searchParams.get("max")
     const sort = searchParams.get("sort") || "newest"
     const brand = searchParams.get("brand")
+    const condition = searchParams.get("condition")
     const mine = searchParams.get("mine") === "1" || searchParams.get("mine") === "true"
     const limit = Math.min(Number(searchParams.get("limit") || 20), 50)
 
@@ -155,6 +156,7 @@ export async function GET(req: NextRequest) {
           ? { userId: ownerUserId! }
           : { status: "ACTIVE" }),
         ...(category ? { category: { slug: category } } : {}),
+        ...(condition ? { condition } : {}),
         ...(city ? { city: { contains: city, mode: "insensitive" } } : {}),
         ...(gov ? { city: { contains: gov, mode: "insensitive" } } : {}),
         ...(Object.keys(priceFilter).length ? { price: priceFilter } : {}),

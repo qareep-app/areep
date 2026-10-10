@@ -5,9 +5,7 @@ import CategoryBar from "@/components/CategoryBar"
 import HomeFilters from "@/components/HomeFilters"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
-import { Suspense } from "react"
-import { Clock, Eye } from "lucide-react"
-import { timeAgo } from "@/lib/time-ago"
+import AdCard from "@/components/AdCard"
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -36,10 +34,11 @@ export default async function AdsPage({ params, searchParams }: Props) {
 
     const cityTerm = sp.city || sp.gov || ""
 
-    ads = await prisma.ad.findMany({
+    ads = await (prisma as any).ad.findMany({
       where: {
         status: "ACTIVE",
         ...(sp.category ? { category: { slug: sp.category } } : {}),
+        ...(sp.condition ? { condition: sp.condition } : {}),
         ...(cityTerm
           ? { city: { contains: cityTerm, mode: "insensitive" } }
           : {}),
@@ -63,7 +62,8 @@ export default async function AdsPage({ params, searchParams }: Props) {
           : {}),
       },
       include: {
-        user: { select: { name: true } },
+        user: { select: { name: true, phone: true } },
+        category: true,
       },
       orderBy,
       take: 50,
@@ -73,78 +73,91 @@ export default async function AdsPage({ params, searchParams }: Props) {
     errorMsg = e?.message || "DB error"
   }
 
+  const qs = (cond: string) => {
+    const p = new URLSearchParams()
+    Object.entries(sp).forEach(([k, v]) => {
+      if (v && k !== "condition") p.set(k, v)
+    })
+    if (cond) p.set("condition", cond)
+    const s = p.toString()
+    return s ? `?${s}` : ""
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950" dir={isRtl ? "rtl" : "ltr"}>
       <Header locale={locale} />
       <CategoryBar locale={locale} />
       <main className="flex-1">
-        <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-          <Suspense fallback={<div className="h-20 bg-white rounded-2xl animate-pulse" />}>
-            <HomeFilters locale={locale} />
-          </Suspense>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <aside className="w-full lg:w-64 shrink-0">
+              <HomeFilters locale={locale} />
+            </aside>
+            <div className="flex-1 min-w-0 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h1 className="text-xl font-bold text-gray-900">
+                  {isRtl ? "كل الإعلانات" : "All ads"}
+                  <span className="text-sm font-normal text-gray-500 ms-2">({ads.length})</span>
+                </h1>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { v: "", ar: "الكل", en: "All" },
+                    { v: "USED", ar: "مستعمل", en: "Used" },
+                    { v: "NEW", ar: "جديد", en: "New" },
+                  ].map((f) => {
+                    const active = (sp.condition || "") === f.v
+                    return (
+                      <Link
+                        key={f.v || "all"}
+                        href={`/${locale}/ads${qs(f.v)}`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                          active
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-gray-600 hover:border-emerald-300"
+                        }`}
+                      >
+                        {isRtl ? f.ar : f.en}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {isRtl ? "كل الإعلانات" : "All Ads"}
-            </h1>
-            <span className="text-sm text-gray-500">
-              {ads.length} {isRtl ? "إعلان" : "ads"}
-            </span>
-          </div>
+              {errorMsg && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                  {errorMsg}
+                </p>
+              )}
 
-          {errorMsg && (
-            <div className="bg-amber-50 text-amber-800 rounded-xl p-4 text-sm">{errorMsg}</div>
-          )}
+              {!errorMsg && ads.length === 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                  <p className="text-gray-500 mb-3">{isRtl ? "مفيش إعلانات" : "No ads"}</p>
+                  <Link href={`/${locale}/ads/new`} className="text-emerald-600 font-medium text-sm">
+                    {isRtl ? "أضف إعلان" : "Post an ad"}
+                  </Link>
+                </div>
+              )}
 
-          {!errorMsg && ads.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <p className="text-gray-500 mb-3">{isRtl ? "مفيش إعلانات" : "No ads"}</p>
-              <Link href={`/${locale}/ads/new`} className="text-emerald-600 font-medium text-sm">
-                {isRtl ? "أضف إعلان" : "Post an ad"}
-              </Link>
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {ads.map((ad) => (
+                  <AdCard key={ad.id} ad={ad} locale={locale} layout="grid" />
+                ))}
+              </div>
+
+              {/* list style section for cars-like horizontal cards */}
+              {ads.length > 0 && (
+                <div className="pt-4">
+                  <h2 className="text-sm font-semibold text-gray-600 mb-3">
+                    {isRtl ? "عرض قائمة" : "List view"}
+                  </h2>
+                  <div className="flex flex-col gap-3">
+                    {ads.slice(0, 12).map((ad) => (
+                      <AdCard key={`l-${ad.id}`} ad={ad} locale={locale} layout="list" />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          <div className="space-y-3">
-            {ads.map((ad) => (
-              <Link
-                key={ad.id}
-                href={`/${locale}/ads/${ad.id}`}
-                className="flex gap-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3 hover:shadow-md transition"
-              >
-                <div className="w-32 h-28 sm:w-40 sm:h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                  {Array.isArray(ad.images) && ad.images[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={ad.images[0]} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-2xl">📦</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-semibold text-emerald-700 line-clamp-2">{ad.titleAr}</h3>
-                    <p className="text-blue-600 font-bold text-sm mt-1">
-                      {Number(ad.price).toLocaleString()} {isRtl ? "جنيه" : "EGP"}
-                    </p>
-                  </div>
-                  <div className="text-[11px] text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
-                    <span>
-                      {ad.city}
-                      {ad.area ? ` · ${ad.area}` : ""}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />
-                      {timeAgo(ad.createdAt, isRtl)}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Eye size={12} />
-                      {ad.views ?? 0}
-                    </span>
-                    {ad.user?.name && <span>{ad.user.name}</span>}
-                  </div>
-                </div>
-              </Link>
-            ))}
           </div>
         </div>
       </main>

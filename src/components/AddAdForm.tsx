@@ -8,23 +8,7 @@ interface AddAdFormProps {
   locale: string
 }
 
-const categories = [
-  { value: "cars", labelAr: "سيارات", labelEn: "Cars" },
-  { value: "car-parts", labelAr: "قطع غيار سيارات", labelEn: "Car Parts" },
-  { value: "motorcycles", labelAr: "موتسيكلات وتروسيكلات", labelEn: "Motorcycles" },
-  { value: "motorcycle-parts", labelAr: "قطع غيار موتسيكلات", labelEn: "Motorcycle Parts" },
-  { value: "real-estate-sale", labelAr: "عقارات - تمليك", labelEn: "Real Estate - Sale" },
-  { value: "real-estate-rent", labelAr: "عقارات - إيجار", labelEn: "Real Estate - Rent" },
-  { value: "mobiles", labelAr: "موبايلات وتابلت", labelEn: "Mobiles & Tablets" },
-  { value: "electronics", labelAr: "أجهزة كهربائية ومنزلية", labelEn: "Home Appliances" },
-  { value: "furniture", labelAr: "أثاث ومفروشات", labelEn: "Furniture" },
-  { value: "fashion", labelAr: "ملابس وأحذية", labelEn: "Fashion" },
-  { value: "pets", labelAr: "حيوانات أليفة", labelEn: "Pets" },
-  { value: "jobs", labelAr: "وظائف وخدمات", labelEn: "Jobs & Services" },
-  { value: "services", labelAr: "خدمات", labelEn: "Services" },
-  { value: "maintenance", labelAr: "مراكز صيانة", labelEn: "Maintenance centers" },
-  { value: "other", labelAr: "أخرى", labelEn: "Other" },
-]
+const categories = AREEP_CATEGORIES.map((c) => ({ value: c.slug, labelAr: c.nameAr, labelEn: c.nameEn }))
 
 
 /** Compress image in browser to stay under Vercel 4.5MB body limit */
@@ -635,12 +619,9 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
           <span className="font-semibold">{isRtl ? "نوع مركز الصيانة" : "Maintenance type"}</span>
           <select value={maintenanceType} onChange={(e) => setMaintenanceType(e.target.value)} className="mt-2 w-full border rounded-xl px-3 py-2" required>
             <option value="">{isRtl ? "اختر النوع" : "Select type"}</option>
-            <option value="cars">{isRtl ? "مراكز صيانة سيارات" : "Car service"}</option>
-            <option value="car-service">{isRtl ? "مراكز خدمة سيارات" : "Car service centers"}</option>
-            <option value="appliances">{isRtl ? "مراكز صيانة أجهزة كهربائية" : "Home appliances"}</option>
-            <option value="mobiles">{isRtl ? "مراكز صيانة موبايلات" : "Mobile repair"}</option>
-            <option value="computers">{isRtl ? "مراكز صيانة كمبيوترات ولابتوبات" : "Computer / laptop"}</option>
-            <option value="gaming">{isRtl ? "مراكز صيانة أجهزة ألعاب" : "Gaming devices"}</option>
+            {MAINTENANCE_TYPES.map((m) => (
+              <option key={m.value} value={m.value}>{isRtl ? m.ar : m.en}</option>
+            ))}
           </select>
         </label>
       )}

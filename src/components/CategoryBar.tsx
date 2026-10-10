@@ -7,106 +7,158 @@ import {
   Tv, Sofa, Shirt, PawPrint, Briefcase, Package, Home,
   HandHelping, GraduationCap, Gamepad2, UtensilsCrossed,
   PartyPopper, Code2, Trees, Palette, Plane, Map,
-  Gem, Search, ChevronLeft, ChevronRight,
+  Gem, Search, ChevronLeft, ChevronRight, HardHat,
 } from "lucide-react"
 
 interface Props {
   locale?: string
 }
 
-const categories = [
-  { slug: "", icon: Home, nameAr: "الرئيسية", nameEn: "Home", gradient: "from-emerald-400 to-emerald-600" },
-  { slug: "cars", icon: Car, nameAr: "سيارات", nameEn: "Cars", gradient: "from-blue-400 to-blue-600" },
-  { slug: "car-parts", icon: Wrench, nameAr: "قطع غيار", nameEn: "Parts", gradient: "from-slate-400 to-slate-600" },
-  { slug: "motorcycles", icon: Bike, nameAr: "موتسيكلات", nameEn: "Bikes", gradient: "from-orange-400 to-orange-600" },
-  { slug: "motorcycle-parts", icon: Settings, nameAr: "قطع موتسيكل", nameEn: "Bike parts", gradient: "from-amber-400 to-amber-600" },
-  { slug: "real-estate-sale", icon: Building2, nameAr: "تمليك", nameEn: "Sale", gradient: "from-emerald-400 to-teal-600" },
-  { slug: "real-estate-rent", icon: Building2, nameAr: "إيجار", nameEn: "Rent", gradient: "from-teal-400 to-cyan-600" },
-  { slug: "mobiles", icon: Smartphone, nameAr: "موبايلات", nameEn: "Phones", gradient: "from-indigo-400 to-indigo-600" },
-  { slug: "electronics", icon: Tv, nameAr: "أجهزة", nameEn: "Electronics", gradient: "from-cyan-400 to-sky-600" },
-  { slug: "furniture", icon: Sofa, nameAr: "أثاث", nameEn: "Furniture", gradient: "from-rose-400 to-rose-600" },
-  { slug: "fashion", icon: Shirt, nameAr: "أزياء", nameEn: "Fashion", gradient: "from-pink-400 to-fuchsia-600" },
-  { slug: "pets", icon: PawPrint, nameAr: "حيوانات", nameEn: "Pets", gradient: "from-lime-400 to-green-600" },
-  { slug: "jobs", icon: Briefcase, nameAr: "وظائف", nameEn: "Jobs", gradient: "from-violet-400 to-purple-600" },
-  { slug: "services", icon: HandHelping, nameAr: "خدمات", nameEn: "Services", gradient: "from-sky-400 to-blue-500" },
-  { slug: "training", icon: GraduationCap, nameAr: "تدريب", nameEn: "Training", gradient: "from-amber-400 to-orange-500" },
-  { slug: "games", icon: Gamepad2, nameAr: "ألعاب", nameEn: "Games", gradient: "from-purple-400 to-violet-600" },
-  { slug: "food", icon: UtensilsCrossed, nameAr: "طعام", nameEn: "Food", gradient: "from-red-400 to-rose-500" },
-  { slug: "events", icon: PartyPopper, nameAr: "مناسبات", nameEn: "Events", gradient: "from-pink-400 to-rose-500" },
-  { slug: "programming", icon: Code2, nameAr: "برمجة", nameEn: "Programming", gradient: "from-slate-500 to-gray-700" },
-  { slug: "gardens", icon: Trees, nameAr: "حدائق", nameEn: "Gardens", gradient: "from-green-400 to-emerald-600" },
-  { slug: "arts", icon: Palette, nameAr: "فنون", nameEn: "Arts", gradient: "from-fuchsia-400 to-purple-500" },
-  { slug: "tourism", icon: Plane, nameAr: "سياحة", nameEn: "Tourism", gradient: "from-cyan-400 to-blue-500" },
-  { slug: "trips", icon: Map, nameAr: "رحلات", nameEn: "Trips", gradient: "from-teal-400 to-cyan-600" },
-  { slug: "antiques", icon: Gem, nameAr: "نوادر", nameEn: "Antiques", gradient: "from-yellow-500 to-amber-600" },
-  { slug: "lost-found", icon: Search, nameAr: "مفقودات", nameEn: "Lost & Found", gradient: "from-gray-400 to-slate-600" },
-  { slug: "other", icon: Package, nameAr: "أخرى", nameEn: "Other", gradient: "from-gray-400 to-gray-600" },
+const iconMap: Record<string, any> = {
+  "": Home,
+  cars: Car,
+  "car-parts": Wrench,
+  motorcycles: Bike,
+  "motorcycle-parts": Settings,
+  maintenance: HardHat,
+  "real-estate-sale": Building2,
+  "real-estate-rent": Building2,
+  mobiles: Smartphone,
+  electronics: Tv,
+  furniture: Sofa,
+  fashion: Shirt,
+  pets: PawPrint,
+  jobs: Briefcase,
+  services: HandHelping,
+  training: GraduationCap,
+  games: Gamepad2,
+  food: UtensilsCrossed,
+  events: PartyPopper,
+  programming: Code2,
+  gardens: Trees,
+  arts: Palette,
+  tourism: Plane,
+  trips: Map,
+  antiques: Gem,
+  "lost-found": Search,
+  other: Package,
+}
+
+const gradients: Record<string, string> = {
+  "": "from-emerald-400 to-emerald-600",
+  cars: "from-blue-400 to-blue-600",
+  "car-parts": "from-slate-400 to-slate-600",
+  motorcycles: "from-orange-400 to-orange-600",
+  "motorcycle-parts": "from-amber-400 to-amber-600",
+  maintenance: "from-yellow-500 to-orange-600",
+  "real-estate-sale": "from-emerald-400 to-teal-600",
+  "real-estate-rent": "from-teal-400 to-cyan-600",
+  mobiles: "from-indigo-400 to-indigo-600",
+  electronics: "from-cyan-400 to-sky-600",
+  furniture: "from-rose-400 to-rose-600",
+  fashion: "from-pink-400 to-fuchsia-600",
+  pets: "from-lime-400 to-green-600",
+  jobs: "from-violet-400 to-purple-600",
+  services: "from-sky-400 to-blue-500",
+  training: "from-amber-400 to-orange-500",
+  games: "from-purple-400 to-violet-600",
+  food: "from-red-400 to-rose-500",
+  events: "from-fuchsia-400 to-pink-500",
+  programming: "from-slate-500 to-gray-700",
+  gardens: "from-green-400 to-emerald-600",
+  arts: "from-pink-400 to-rose-500",
+  tourism: "from-sky-400 to-blue-600",
+  trips: "from-teal-400 to-cyan-600",
+  antiques: "from-amber-500 to-yellow-600",
+  "lost-found": "from-gray-400 to-slate-600",
+  other: "from-gray-400 to-gray-600",
+}
+
+const barItems = [
+  { slug: "", nameAr: "الرئيسية", nameEn: "Home" },
+  { slug: "cars", nameAr: "سيارات", nameEn: "Cars" },
+  { slug: "car-parts", nameAr: "قطع غيار", nameEn: "Parts" },
+  { slug: "motorcycles", nameAr: "موتسيكلات", nameEn: "Bikes" },
+  { slug: "motorcycle-parts", nameAr: "قطع موتسيكل", nameEn: "Bike parts" },
+  { slug: "maintenance", nameAr: "مراكز صيانة", nameEn: "Maintenance" },
+  { slug: "real-estate-sale", nameAr: "تمليك", nameEn: "Sale" },
+  { slug: "real-estate-rent", nameAr: "إيجار", nameEn: "Rent" },
+  { slug: "mobiles", nameAr: "موبايلات", nameEn: "Phones" },
+  { slug: "electronics", nameAr: "أجهزة", nameEn: "Electronics" },
+  { slug: "furniture", nameAr: "أثاث", nameEn: "Furniture" },
+  { slug: "fashion", nameAr: "أزياء", nameEn: "Fashion" },
+  { slug: "pets", nameAr: "حيوانات", nameEn: "Pets" },
+  { slug: "jobs", nameAr: "وظائف", nameEn: "Jobs" },
+  { slug: "services", nameAr: "خدمات", nameEn: "Services" },
+  { slug: "training", nameAr: "تدريب", nameEn: "Training" },
+  { slug: "games", nameAr: "ألعاب", nameEn: "Games" },
+  { slug: "food", nameAr: "طعام", nameEn: "Food" },
+  { slug: "events", nameAr: "مناسبات", nameEn: "Events" },
+  { slug: "programming", nameAr: "برمجة", nameEn: "Code" },
+  { slug: "gardens", nameAr: "حدائق", nameEn: "Gardens" },
+  { slug: "arts", nameAr: "فنون", nameEn: "Arts" },
+  { slug: "tourism", nameAr: "سياحة", nameEn: "Tourism" },
+  { slug: "trips", nameAr: "رحلات", nameEn: "Trips" },
+  { slug: "antiques", nameAr: "نوادر", nameEn: "Antiques" },
+  { slug: "lost-found", nameAr: "مفقودات", nameEn: "Lost" },
+  { slug: "other", nameAr: "أخرى", nameEn: "Other" },
 ]
 
 export default function CategoryBar({ locale = "ar" }: Props) {
   const isRtl = locale === "ar"
-  const scroller = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
 
-  const scroll = (dir: "left" | "right") => {
-    const el = scroller.current
-    if (!el) return
-    const amount = 240
-    const delta = dir === "left" ? -amount : amount
-    el.scrollBy({ left: isRtl ? -delta : delta, behavior: "smooth" })
+  const scroll = (dir: number) => {
+    ref.current?.scrollBy({ left: dir * 200, behavior: "smooth" })
   }
 
   return (
-    <section className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-[6.5rem] z-40">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
+    <div className="bg-white border-b border-gray-100 sticky top-[72px] z-40">
+      <div className="max-w-7xl mx-auto px-2 relative flex items-center gap-1">
         <button
           type="button"
-          onClick={() => scroll("left")}
-          className="absolute start-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
-          aria-label="scroll"
+          onClick={() => scroll(isRtl ? 1 : -1)}
+          className="shrink-0 p-1.5 rounded-full bg-white shadow border text-gray-500 hover:bg-gray-50"
+          aria-label="prev"
         >
           {isRtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
-        <button
-          type="button"
-          onClick={() => scroll("right")}
-          className="absolute end-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow flex items-center justify-center hover:bg-gray-50 hidden sm:flex"
-          aria-label="scroll"
-        >
-          {isRtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
-
         <div
-          ref={scroller}
-          className="flex items-stretch justify-start gap-2 overflow-x-auto py-3 px-9 scroll-smooth"
-          style={{ scrollbarWidth: "thin" }}
+          ref={ref}
+          className="flex gap-3 overflow-x-auto py-3 scrollbar-hide scroll-smooth flex-1"
+          style={{ scrollbarWidth: "none" }}
         >
-          {categories.map((cat) => {
-            const Icon = cat.icon
-            const href = cat.slug ? `/${locale}/ads?category=${cat.slug}` : `/${locale}`
+          {barItems.map((c) => {
+            const Icon = iconMap[c.slug] || Package
+            const grad = gradients[c.slug] || "from-gray-400 to-gray-600"
+            const href = c.slug ? `/${locale}/ads?category=${c.slug}` : `/${locale}`
             return (
               <Link
-                key={cat.slug || "home"}
+                key={c.slug || "home"}
                 href={href}
-                className="flex flex-col items-center justify-center gap-1.5 min-w-[76px] w-[76px] shrink-0"
+                className="flex flex-col items-center gap-1 min-w-[64px] shrink-0 group"
               >
-                {/* 3D rectangular tile — icon centered */}
                 <div
-                  className={`w-14 h-12 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-white`}
-                  style={{
-                    boxShadow:
-                      "0 6px 10px -2px rgb(0 0 0 / 0.18), 0 2px 4px -2px rgb(0 0 0 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.28)",
-                  }}
+                  className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition`}
                 >
-                  <Icon size={22} strokeWidth={2.1} className="mx-auto" />
+                  <Icon size={22} strokeWidth={2} />
                 </div>
-                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight w-full">
-                  {isRtl ? cat.nameAr : cat.nameEn}
+                <span className="text-[11px] font-medium text-gray-600 text-center leading-tight max-w-[72px]">
+                  {isRtl ? c.nameAr : c.nameEn}
                 </span>
               </Link>
             )
           })}
         </div>
+        <button
+          type="button"
+          onClick={() => scroll(isRtl ? -1 : 1)}
+          className="shrink-0 p-1.5 rounded-full bg-white shadow border text-gray-500 hover:bg-gray-50"
+          aria-label="next"
+        >
+          {isRtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        </button>
       </div>
-    </section>
+    </div>
   )
 }

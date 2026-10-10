@@ -11,6 +11,7 @@ import {
   Settings,
   FileText,
   AlertTriangle,
+  FolderOpen,
 } from "lucide-react"
 
 interface AdminSidebarProps {
@@ -23,6 +24,7 @@ const items = [
   { id: "users", href: "/admin/users", icon: Users, ar: "المستخدمين", en: "Users" },
   { id: "sellers", href: "/admin/sellers", icon: Users, ar: "طلبات البائعين", en: "Seller apps" },
   { id: "ads", href: "/admin/ads", icon: Megaphone, ar: "الإعلانات", en: "Ads" },
+  { id: "categories", href: "/admin/categories", icon: FolderOpen, ar: "التصنيفات", en: "Categories" },
   { id: "transactions", href: "/admin/transactions", icon: CreditCard, ar: "المعاملات", en: "Transactions" },
   { id: "contracts", href: "/admin/contracts", icon: FileText, ar: "العقود", en: "Contracts" },
   { id: "legal", href: "/admin/legal", icon: Scale, ar: "المستشارين القانونيين", en: "Legal Consultants" },

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/session"
-import { prisma } from "@/lib/prisma"
-
-const db = prisma as any
+import { getQuotaSnapshot, resolveDbUserId, PACKAGE_META } from "@/lib/packages"
 
 export async function GET() {
   const session = await getSession()
@@ -11,56 +9,23 @@ export async function GET() {
   }
 
   try {
-    let userId = session.id
-    if (String(userId).startsWith("tmp_") && session.phone) {
-      const u = await db.user.findUnique({ where: { phone: session.phone } })
-      if (u) userId = u.id
-    }
-
-    const active = await db.userPackage.findFirst({
-      where: { userId, isActive: true, endDate: { gte: new Date() } },
-      include: { package: true },
-      orderBy: { endDate: "desc" },
-    })
-
-    if (!active) {
-      return NextResponse.json({
-        ok: true,
-        active: null,
-        quota: {
-          slug: "free",
-          nameAr: "مجانية",
-          nameEn: "Free",
-          maxAds: 5,
-          adsUsed: 0,
-          adsRemaining: 5,
-          featuredAds: 0,
-          featuredUsed: 0,
-          featuredRemaining: 0,
-          endDate: null,
-        },
-      })
-    }
-
-    const maxAds = active.package?.maxAds
-    const featuredAds = active.package?.featuredAds ?? 0
-    const adsUsed = active.adsUsed ?? 0
-    const featuredUsed = active.featuredUsed ?? 0
+    const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
+    const q = await getQuotaSnapshot(userId)
+    const meta = PACKAGE_META[q.slug] || PACKAGE_META.free
 
     return NextResponse.json({
       ok: true,
-      active,
       quota: {
-        slug: active.package?.slug || "unknown",
-        nameAr: active.package?.nameAr || active.package?.slug,
-        nameEn: active.package?.nameEn || active.package?.slug,
-        maxAds: maxAds,
-        adsUsed,
-        adsRemaining: maxAds == null ? null : Math.max(0, maxAds - adsUsed),
-        featuredAds,
-        featuredUsed,
-        featuredRemaining: Math.max(0, featuredAds - featuredUsed),
-        endDate: active.endDate,
+        slug: q.slug,
+        nameAr: meta.nameAr,
+        nameEn: meta.nameEn,
+        maxAds: q.maxAds,
+        adsUsed: q.adsUsed,
+        adsRemaining: q.adsRemaining,
+        featuredAds: q.featuredAds,
+        featuredUsed: q.featuredUsed,
+        featuredRemaining: q.featuredRemaining,
+        endDate: q.endDate,
       },
     })
   } catch (e: any) {

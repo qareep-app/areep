@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
+import { assertCanPostAd, recordAdCreated, resolveDbUserId } from "@/lib/packages"
 
 /**
  * POST /api/ads - Create a new ad (requires login)
@@ -49,20 +50,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "الفئة غير موجودة" }, { status: 400 })
     }
 
-    // Ensure user exists in DB (session id might be tmp_ for offline)
-    let userId = session.id
-    if (userId.startsWith("tmp_")) {
-      const phone = session.phone
-      const u = await prisma.user.upsert({
-        where: { phone },
-        update: {},
-        create: {
-          phone,
-          name: session.name || null,
-          role: session.role === "ADMIN" ? "ADMIN" : "USER",
-        },
-      })
-      userId = u.id
+    const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
+
+    // Enforce package ad quota
+    const canPost = await assertCanPostAd(userId)
+    if (!canPost.ok) {
+      return NextResponse.json(
+        { error: canPost.error, quota: canPost.quota, code: "PACKAGE_LIMIT" },
+        { status: 403 }
+      )
     }
 
     const ad = await (prisma as any).ad.create({
@@ -93,32 +89,15 @@ export async function POST(req: NextRequest) {
     })
 
 
-    // Auto-feature if user package still has featured slots
+    // Update package counters + optional auto-feature
     try {
-      const up = await (prisma as any).userPackage.findFirst({
-        where: { userId, isActive: true, endDate: { gte: new Date() } },
-        include: { package: true },
-        orderBy: { endDate: "desc" },
-      })
-      const quota = up?.package?.featuredAds ?? 0
-      const used = up?.featuredUsed ?? 0
-      if (up && quota > used) {
-        const until = up.endDate || new Date(Date.now() + 30 * 864e5)
-        await (prisma as any).ad.update({
-          where: { id: ad.id },
-          data: { isFeatured: true, featuredUntil: until },
-        })
-        await (prisma as any).userPackage.update({
-          where: { id: up.id },
-          data: { featuredUsed: used + 1 },
-        })
-        ad.isFeatured = true
-      }
+      const rec = await recordAdCreated(userId, ad.id)
+      if (rec.featured) ad.isFeatured = true
     } catch (e) {
-      console.warn("auto-feature skip", e)
+      console.warn("recordAdCreated skip", e)
     }
 
-    return NextResponse.json({ success: true, ad }, { status: 201 })
+return NextResponse.json({ success: true, ad }, { status: 201 })
   } catch (error: any) {
     console.error("Create ad error:", error)
     return NextResponse.json(

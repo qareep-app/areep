@@ -255,7 +255,15 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || (isRtl ? "فشل نشر الإعلان" : "Failed"))
+      if (!res.ok) {
+          if (data.code === "PACKAGE_LIMIT") {
+            throw new Error(
+              (data.error || "") +
+                (isRtl ? " — من الباقات تقدر ترقّي." : " — Upgrade from Packages.")
+            )
+          }
+          throw new Error(data.error || (isRtl ? "فشل نشر الإعلان" : "Failed"))
+        }
       setSuccess(true)
       setTimeout(() => router.push(`/${locale}/ads`), 1200)
     } catch (err: any) {

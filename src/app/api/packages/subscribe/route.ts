@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/session"
 import { createPaymobIntention } from "@/lib/paymob"
-import { prisma } from "@/lib/prisma"
-
-const db = prisma as any
-
-const PRICES: Record<string, number> = {
-  free: 0,
-  basic: 149,
-  pro: 349,
-  cars: 799,
-  realestate: 599,
-}
+import {
+  activateUserPackage,
+  getPackageMeta,
+  resolveDbUserId,
+  getQuotaSnapshot,
+} from "@/lib/packages"
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,30 +15,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "سجّل دخول أولاً" }, { status: 401 })
     }
 
-    const { packageId } = await req.json()
-    if (!packageId || !(packageId in PRICES)) {
+    const body = await req.json().catch(() => ({}))
+    const packageId = (body.packageId || body.packageSlug) as string
+    if (!packageId || !getPackageMeta(packageId)) {
       return NextResponse.json({ error: "باقة غير معروفة" }, { status: 400 })
     }
 
-    const amount = PRICES[packageId]
+    const meta = getPackageMeta(packageId)
+    const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
 
-    if (amount === 0) {
-      // Activate free package in DB if model exists
-      try {
-        const pkg = await db.package.findFirst({ where: { slug: "free" } }).catch(() => null)
-        if (pkg) {
-          await db.userPackage.create({
-            data: {
-              userId: session.id,
-              packageId: pkg.id,
-              startAt: new Date(),
-              endAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-              status: "ACTIVE",
-            },
-          })
-        }
-      } catch {}
-      return NextResponse.json({ ok: true, free: true, message: "الباقة المجانية مفعّلة" })
+    if (meta.price === 0) {
+      const up = await activateUserPackage(userId, packageId)
+      const quota = await getQuotaSnapshot(userId)
+      return NextResponse.json({ ok: true, free: true, userPackage: up, quota })
     }
 
     if (!process.env.PAYMOB_API_KEY?.trim()) {
@@ -54,15 +38,21 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await createPaymobIntention({
-      amount,
-      orderId: `pkg_${packageId}_${session.id.slice(-6)}_${Date.now()}`,
+      amount: meta.price,
+      orderId: `package_${packageId}_${userId}_${Date.now()}`,
       customerName: session.name || "عميل قريب",
       customerPhone: session.phone,
-      items: [{ name: `باقة ${packageId}`, amount, quantity: 1 }],
+      items: [{ name: `باقة ${meta.nameAr}`, amount: meta.price, quantity: 1 }],
     })
 
     const iframeUrl = (result as any).iframeUrl || null
-    return NextResponse.json({ ok: true, iframeUrl, intention: result })
+    const res = NextResponse.json({ ok: true, iframeUrl, intention: result })
+    res.cookies.set("areep_pending_pkg", `${packageId}|${userId}`, {
+      path: "/",
+      maxAge: 60 * 60,
+      sameSite: "lax",
+    })
+    return res
   } catch (e: any) {
     return NextResponse.json({ error: e?.message }, { status: 500 })
   }

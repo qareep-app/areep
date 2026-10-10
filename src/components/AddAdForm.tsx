@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Upload, Shield, Loader2, X, MapPin, Navigation, Map, Film, ImagePlus } from "lucide-react"
+import { AREEP_CATEGORIES, MAINTENANCE_TYPES } from "@/lib/categories"
 
 interface AddAdFormProps {
   locale: string

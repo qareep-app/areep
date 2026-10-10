@@ -20,7 +20,7 @@ export default function Footer({ locale = "ar" }: FooterProps) {
             <div className="flex items-center gap-2 mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/app-icon.png"
+                src="/app-icon.png?v=3"
                 alt="قريب"
                 className="w-10 h-10 rounded-xl object-cover shadow"
               />
@@ -42,7 +42,7 @@ export default function Footer({ locale = "ar" }: FooterProps) {
                 className="inline-flex items-center gap-2 bg-black text-white rounded-lg px-3 py-2 hover:bg-gray-900 transition"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/app-icon.png" alt="" className="w-7 h-7 rounded-md object-cover" />
+                <img src="/app-icon.png?v=3" alt="" className="w-7 h-7 rounded-md object-cover" />
                 <div className="text-start leading-tight">
                   <div className="text-[9px] opacity-80">GET IT ON</div>
                   <div className="text-sm font-semibold">Google Play</div>
@@ -55,7 +55,7 @@ export default function Footer({ locale = "ar" }: FooterProps) {
                 className="inline-flex items-center gap-2 bg-black text-white rounded-lg px-3 py-2 hover:bg-gray-900 transition"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/app-icon.png" alt="" className="w-7 h-7 rounded-md object-cover" />
+                <img src="/app-icon.png?v=3" alt="" className="w-7 h-7 rounded-md object-cover" />
                 <div className="text-start leading-tight">
                   <div className="text-[9px] opacity-80">Download on the</div>
                   <div className="text-sm font-semibold">App Store</div>

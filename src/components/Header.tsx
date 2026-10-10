@@ -96,7 +96,7 @@ useEffect(() => {
           <Link href={`/${locale}`} className="flex items-center gap-2.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/app-icon.png"
+              src="/app-icon.png?v=3"
               alt="قريب"
               className="w-10 h-10 rounded-xl object-cover shadow-sm ring-1 ring-black/5"
             />

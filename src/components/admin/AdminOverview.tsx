@@ -81,19 +81,25 @@ export default function AdminOverview({ locale }: Props) {
 
   const sections = [
     {
+      href: `/${locale}/admin/users`,
+      title: isRtl ? "إدارة المستخدمين" : "Users",
+      desc: isRtl ? "تجميد / إلغاء تجميد / إيقاف بائع / حذف" : "Freeze / unban / suspend seller / delete",
+      icon: Users,
+    },
+    {
       href: `/${locale}/admin/sellers`,
       title: isRtl ? "إدارة البائعين" : "Sellers",
       desc: isRtl ? "الموافقة أو الرفض على البائعين الجدد" : "Approve or reject sellers",
       icon: Store,
     },
     {
-      href: `/${locale}/categories`,
+      href: `/${locale}/admin/categories`,
       title: isRtl ? "إدارة التصنيفات" : "Categories",
       desc: isRtl ? "إضافة وتعديل وحذف تصنيفات المنتجات" : "Manage categories",
       icon: FolderOpen,
     },
     {
-      href: `/${locale}/ads`,
+      href: `/${locale}/admin/ads`,
       title: isRtl ? "إدارة الإعلانات" : "Ads",
       desc: isRtl ? "مراجعة أي إعلان في الموقع" : "Review ads",
       icon: Package,
@@ -111,7 +117,7 @@ export default function AdminOverview({ locale }: Props) {
       icon: Lock,
     },
     {
-      href: `/${locale}/escrow`,
+      href: `/${locale}/admin/transactions`,
       title: isRtl ? "وسيط قريب" : "Escrow",
       desc: isRtl ? "صفقات الوسيط والمدفوعات" : "Escrow deals",
       icon: Shield,

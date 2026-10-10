@@ -37,7 +37,7 @@ export default function HomeFilters({ locale = "ar", variant = "bar" }: Props) {
     const params = new URLSearchParams()
     // preserve existing non-filter params
     const cat = overrides?.category ?? category
-    const q = overrides?.q ?? sp.get("q") || ""
+    const q = overrides?.q ?? (sp.get("q") || "")
     if (cat) params.set("category", cat)
     if (q) params.set("q", q)
 

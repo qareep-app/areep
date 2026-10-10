@@ -13,11 +13,11 @@ const PACKAGE_META: Record<
   realestate: { price: 599, durationDays: 30, maxAds: null, featuredAds: 15 },
 }
 
+/** After package payment: activate subscription + auto-feature latest ads up to quota */
 export async function activateUserPackage(userId: string, packageSlug: string) {
   const meta = PACKAGE_META[packageSlug] || PACKAGE_META.basic
   const endDate = new Date(Date.now() + meta.durationDays * 24 * 60 * 60 * 1000)
 
-  // Ensure Package row exists
   let pkg = await db.package.findUnique({ where: { slug: packageSlug } }).catch(() => null)
   if (!pkg) {
     pkg = await db.package.create({
@@ -34,11 +34,12 @@ export async function activateUserPackage(userId: string, packageSlug: string) {
     })
   }
 
-  // Deactivate previous
-  await db.userPackage.updateMany({
-    where: { userId, isActive: true },
-    data: { isActive: false },
-  }).catch(() => {})
+  await db.userPackage
+    .updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    })
+    .catch(() => {})
 
   const up = await db.userPackage.create({
     data: {
@@ -52,6 +53,30 @@ export async function activateUserPackage(userId: string, packageSlug: string) {
     },
   })
 
+  // Auto-feature newest active ads up to package featured quota
+  if (meta.featuredAds > 0) {
+    const ads = await db.ad
+      .findMany({
+        where: { userId, status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+        take: meta.featuredAds,
+        select: { id: true },
+      })
+      .catch(() => [])
+
+    if (ads.length) {
+      const until = new Date(endDate)
+      await db.ad.updateMany({
+        where: { id: { in: ads.map((a: any) => a.id) } },
+        data: { isFeatured: true, featuredUntil: until },
+      })
+      await db.userPackage.update({
+        where: { id: up.id },
+        data: { featuredUsed: ads.length },
+      })
+    }
+  }
+
   return up
 }
 
@@ -62,7 +87,6 @@ export function parsePackageOrderId(merchantOrderId: string): {
 } {
   if (!merchantOrderId.startsWith("package_")) return {}
   const parts = merchantOrderId.split("_")
-  // package_slug_userId_ts_rand
   if (parts.length >= 4) {
     return { packageSlug: parts[1], userId: parts[2] }
   }
@@ -70,4 +94,8 @@ export function parsePackageOrderId(merchantOrderId: string): {
     return { packageSlug: parts[1] }
   }
   return {}
+}
+
+export function getPackageMeta(slug: string) {
+  return PACKAGE_META[slug] || PACKAGE_META.basic
 }

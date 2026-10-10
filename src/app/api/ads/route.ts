@@ -92,6 +92,32 @@ export async function POST(req: NextRequest) {
       },
     })
 
+
+    // Auto-feature if user package still has featured slots
+    try {
+      const up = await (prisma as any).userPackage.findFirst({
+        where: { userId, isActive: true, endDate: { gte: new Date() } },
+        include: { package: true },
+        orderBy: { endDate: "desc" },
+      })
+      const quota = up?.package?.featuredAds ?? 0
+      const used = up?.featuredUsed ?? 0
+      if (up && quota > used) {
+        const until = up.endDate || new Date(Date.now() + 30 * 864e5)
+        await (prisma as any).ad.update({
+          where: { id: ad.id },
+          data: { isFeatured: true, featuredUntil: until },
+        })
+        await (prisma as any).userPackage.update({
+          where: { id: up.id },
+          data: { featuredUsed: used + 1 },
+        })
+        ad.isFeatured = true
+      }
+    } catch (e) {
+      console.warn("auto-feature skip", e)
+    }
+
     return NextResponse.json({ success: true, ad }, { status: 201 })
   } catch (error: any) {
     console.error("Create ad error:", error)

@@ -41,6 +41,9 @@ export default async function AdsPage({ params, searchParams }: Props) {
       status: "ACTIVE",
       ...(sp.category ? { category: { slug: sp.category } } : {}),
       ...(sp.condition ? { condition: sp.condition } : {}),
+      ...(sp.importType
+        ? { attributes: { path: ["importType"], equals: sp.importType } }
+        : {}),
       ...(cityTerm
         ? {
             OR: [

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X, Scale, Shield,
+  Search, User, Plus, MessageCircle, LayoutDashboard, Moon, Sun, Menu, X, Scale, Shield, LogOut,
 } from "lucide-react"
 
 interface HeaderProps {
@@ -29,14 +29,27 @@ export default function Header({ locale = "ar" }: HeaderProps) {
   const [dark, setDark] = useState(false)
   const [open, setOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
-  
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { credentials: "include" })
       .then((r) => r.json())
-      .then((d) => setIsAdmin(d.user?.role === "ADMIN"))
-      .catch(() => setIsAdmin(false))
+      .then((d) => {
+        setUser(d.user || null)
+        setIsAdmin(d.user?.role === "ADMIN")
+      })
+      .catch(() => {
+        setUser(null)
+        setIsAdmin(false)
+      })
   }, [])
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+    setUser(null)
+    setIsAdmin(false)
+    window.location.href = `/${locale}`
+  }
 
 useEffect(() => {
     try {
@@ -169,13 +182,35 @@ useEffect(() => {
               <LayoutDashboard size={20} />
             </Link>
 
-            <Link
-              href={`/${locale}/auth/login`}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-300"
-              aria-label="account"
-            >
-              <User size={20} />
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href={`/${locale}/dashboard`}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50"
+                  title={user.phone || user.name || ""}
+                >
+                  <User size={16} />
+                  <span className="max-w-[90px] truncate">{user.name || user.phone || (isRtl ? "حسابي" : "Account")}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="p-2 rounded-full hover:bg-red-50 text-red-600"
+                  aria-label="logout"
+                  title={isRtl ? "تسجيل الخروج" : "Log out"}
+                >
+                  <LogOut size={20} />
+                </button>
+              </>
+            ) : (
+              <Link
+                href={`/${locale}/auth/login`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+              >
+                <User size={16} />
+                {isRtl ? "دخول" : "Login"}
+              </Link>
+            )}
 
             <Link
               href={`/${locale}/seller/register`}

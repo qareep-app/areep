@@ -22,7 +22,8 @@ async function main() {
     { slug: "fashion", nameAr: "ملابس وأحذية", nameEn: "Fashion", sortOrder: 10, commissionType: "STANDARD" as const },
     { slug: "pets", nameAr: "حيوانات أليفة", nameEn: "Pets", sortOrder: 11, commissionType: "STANDARD" as const },
     { slug: "jobs", nameAr: "وظائف وخدمات", nameEn: "Jobs & Services", sortOrder: 12, commissionType: "STANDARD" as const },
-    { slug: "other", nameAr: "أخرى", nameEn: "Other", sortOrder: 13, commissionType: "STANDARD" as const },
+    { slug: "maintenance", nameAr: "مراكز صيانة", nameEn: "Maintenance centers", sortOrder: 13, commissionType: "STANDARD" as const },
+    { slug: "other", nameAr: "أخرى", nameEn: "Other", sortOrder: 14, commissionType: "STANDARD" as const },
   ]
 
   for (const cat of categories) {

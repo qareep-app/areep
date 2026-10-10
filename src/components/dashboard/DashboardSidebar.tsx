@@ -13,6 +13,7 @@ import {
   FileText,
   Scale,
   UserPlus,
+  LogOut,
 } from "lucide-react"
 
 interface DashboardSidebarProps {
@@ -91,6 +92,17 @@ export default function DashboardSidebar({ locale, active }: DashboardSidebarPro
             </Link>
           )}
         </nav>
+        <button
+          type="button"
+          onClick={async () => {
+            await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+            window.location.href = `/${locale}`
+          }}
+          className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 border border-red-100"
+        >
+          <LogOut size={18} />
+          <span>{isRtl ? "تسجيل الخروج" : "Log out"}</span>
+        </button>
       </div>
     </aside>
   )

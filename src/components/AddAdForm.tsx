@@ -22,6 +22,7 @@ const categories = [
   { value: "pets", labelAr: "حيوانات أليفة", labelEn: "Pets" },
   { value: "jobs", labelAr: "وظائف وخدمات", labelEn: "Jobs & Services" },
   { value: "services", labelAr: "خدمات", labelEn: "Services" },
+  { value: "maintenance", labelAr: "مراكز صيانة", labelEn: "Maintenance centers" },
   { value: "other", labelAr: "أخرى", labelEn: "Other" },
 ]
 
@@ -58,6 +59,15 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
 
   const [category, setCategory] = useState("")
   const [allowEscrow, setAllowEscrow] = useState(false)
+  const [condition, setCondition] = useState("USED")
+  const [mileage, setMileage] = useState("")
+  const [transmission, setTransmission] = useState("")
+  const [fuel, setFuel] = useState("")
+  const [color, setColor] = useState("")
+  const [year, setYear] = useState("")
+  const [brand, setBrand] = useState("")
+  const [importType, setImportType] = useState("") // imported | local | transfer
+  const [maintenanceType, setMaintenanceType] = useState("")
   const [title, setTitle] = useState("")
   const [price, setPrice] = useState("")
   const [description, setDescription] = useState("")
@@ -75,7 +85,9 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
   const [success, setSuccess] = useState(false)
 
   const isCarsOrParts = ["cars", "car-parts", "motorcycles", "motorcycle-parts"].includes(category)
+  const isVehicle = ["cars", "motorcycles"].includes(category)
   const isRealEstate = category.startsWith("real-estate")
+  const isMaintenance = category === "maintenance"
 
   // Load Leaflet when map opens
   useEffect(() => {
@@ -242,7 +254,17 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
           latitude: lat,
           longitude: lng,
           allowEscrow,
-          condition: "USED",
+          condition,
+          attributes: {
+            mileage: mileage || undefined,
+            transmission: transmission || undefined,
+            fuel: fuel || undefined,
+            color: color || undefined,
+            year: year || undefined,
+            brand: brand || undefined,
+            importType: importType || undefined,
+            maintenanceType: maintenanceType || undefined,
+          },
           images,
           videos,
         }),
@@ -547,7 +569,83 @@ export default function AddAdForm({ locale }: AddAdFormProps) {
       </div>
 
 
-      {(isCarsOrParts || isRealEstate) && (
+      
+      {isVehicle && (
+        <div className="space-y-4 border rounded-xl p-4 bg-gray-50">
+          <h3 className="font-semibold text-sm">{isRtl ? "تفاصيل المركبة" : "Vehicle details"}</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="text-sm block">
+              <span className="text-gray-600">{isRtl ? "الحالة" : "Condition"}</span>
+              <div className="flex gap-2 mt-1">
+                {[["USED", isRtl ? "مستعمل" : "Used"], ["NEW", isRtl ? "جديد" : "New"]].map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setCondition(v)}
+                    className={`px-3 py-1.5 rounded-full text-sm border ${condition === v ? "bg-emerald-600 text-white border-emerald-600" : "bg-white"}`}>{l}</button>
+                ))}
+              </div>
+            </label>
+            <label className="text-sm block">
+              <span className="text-gray-600">{isRtl ? "مستورد / تنازل" : "Import / Transfer"}</span>
+              <select value={importType} onChange={(e) => setImportType(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2">
+                <option value="">{isRtl ? "اختياري" : "Optional"}</option>
+                <option value="local">{isRtl ? "محلي" : "Local"}</option>
+                <option value="imported">{isRtl ? "مستورد" : "Imported"}</option>
+                <option value="transfer">{isRtl ? "تنازل" : "Transfer"}</option>
+              </select>
+            </label>
+            <label className="text-sm block">
+              <span className="text-gray-600">{isRtl ? "العلامة / الماركة" : "Brand"}</span>
+              <input value={brand} onChange={(e) => setBrand(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2" placeholder="Toyota" />
+            </label>
+            <label className="text-sm block">
+              <span className="text-gray-600">{isRtl ? "سنة الصنع" : "Year"}</span>
+              <input value={year} onChange={(e) => setYear(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2" placeholder="2020" />
+            </label>
+            <label className="text-sm block">
+              <span className="text-gray-600">{isRtl ? "عدد الكيلومترات" : "Mileage"}</span>
+              <input value={mileage} onChange={(e) => setMileage(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2" placeholder="KMs" />
+            </label>
+            <label className="text-sm block">
+              <span className="text-gray-600">{isRtl ? "ناقل الحركة" : "Transmission"}</span>
+              <div className="flex gap-2 mt-1">
+                {[["manual", isRtl ? "مانيوال" : "Manual"], ["auto", isRtl ? "أوتوماتيك" : "Auto"]].map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setTransmission(v)}
+                    className={`px-3 py-1.5 rounded-full text-sm border ${transmission === v ? "bg-emerald-600 text-white border-emerald-600" : "bg-white"}`}>{l}</button>
+                ))}
+              </div>
+            </label>
+            <label className="text-sm block sm:col-span-2">
+              <span className="text-gray-600">{isRtl ? "نوع الوقود" : "Fuel"}</span>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {(isRtl ? [["petrol","بنزين"],["diesel","ديزل"],["gas","غاز"],["electric","كهربائي"],["hybrid","هجين"]] : [["petrol","Petrol"],["diesel","Diesel"],["gas","Gas"],["electric","Electric"],["hybrid","Hybrid"]]).map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setFuel(v)}
+                    className={`px-3 py-1.5 rounded-full text-sm border ${fuel === v ? "bg-emerald-600 text-white border-emerald-600" : "bg-white"}`}>{l}</button>
+                ))}
+              </div>
+            </label>
+            <label className="text-sm block sm:col-span-2">
+              <span className="text-gray-600">{isRtl ? "اللون" : "Color"}</span>
+              <input value={color} onChange={(e) => setColor(e.target.value)} className="mt-1 w-full border rounded-xl px-3 py-2" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {isMaintenance && (
+        <label className="text-sm block border rounded-xl p-4 bg-gray-50">
+          <span className="font-semibold">{isRtl ? "نوع مركز الصيانة" : "Maintenance type"}</span>
+          <select value={maintenanceType} onChange={(e) => setMaintenanceType(e.target.value)} className="mt-2 w-full border rounded-xl px-3 py-2" required>
+            <option value="">{isRtl ? "اختر النوع" : "Select type"}</option>
+            <option value="cars">{isRtl ? "مراكز صيانة سيارات" : "Car service"}</option>
+            <option value="car-service">{isRtl ? "مراكز خدمة سيارات" : "Car service centers"}</option>
+            <option value="appliances">{isRtl ? "مراكز صيانة أجهزة كهربائية" : "Home appliances"}</option>
+            <option value="mobiles">{isRtl ? "مراكز صيانة موبايلات" : "Mobile repair"}</option>
+            <option value="computers">{isRtl ? "مراكز صيانة كمبيوترات ولابتوبات" : "Computer / laptop"}</option>
+            <option value="gaming">{isRtl ? "مراكز صيانة أجهزة ألعاب" : "Gaming devices"}</option>
+          </select>
+        </label>
+      )}
+
+{(isCarsOrParts || isRealEstate) && (
         <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input

@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       condition,
       images,
       videos,
+      attributes,
     } = body
 
     if (!titleAr || !descriptionAr || !price || !categorySlug || !city) {
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
         allowEscrow: Boolean(allowEscrow),
         images: Array.isArray(images) ? images : [],
         videos: Array.isArray(videos) ? videos : [],
+        attributes: attributes || null,
         categoryId: category.id,
         userId,
       },

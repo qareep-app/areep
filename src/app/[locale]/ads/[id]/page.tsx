@@ -196,12 +196,36 @@ export default async function AdDetailPage({ params }: Props) {
                 </p>
               )}
 
-              <Link
-                href={`/${locale}/chat?ad=${ad.id}`}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition"
-              >
-                {isRtl ? "راسل البائع (شات الموقع)" : "Message seller"}
-              </Link>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  {isRtl ? "اختر طريقة الشراء:" : "Choose how to buy:"}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Link
+                    href={`/${locale}/chat?ad=${ad.id}&mode=direct`}
+                    className="inline-flex items-center justify-center flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition text-center"
+                  >
+                    {isRtl ? "شراء عادي (شات مع البائع)" : "Normal buy (chat seller)"}
+                  </Link>
+                  {ad.allowEscrow ? (
+                    <Link
+                      href={`/${locale}/dashboard/escrow?ad=${ad.id}&start=1`}
+                      className="inline-flex items-center justify-center flex-1 px-5 py-3 rounded-xl border-2 border-emerald-600 text-emerald-800 font-semibold hover:bg-emerald-50 transition text-center"
+                    >
+                      {isRtl ? "شراء بوسيط قريب" : "Buy with Escrow"}
+                    </Link>
+                  ) : (
+                    <div className="flex-1 px-4 py-3 rounded-xl bg-gray-50 text-gray-400 text-sm text-center border">
+                      {isRtl ? "الوسيط غير مفعّل على هذا الإعلان" : "Escrow not enabled on this ad"}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isRtl
+                    ? "الوسيط اختياري للمشتري إذا فعّله البائع. الشراء العادي يتم بالشات الداخلي فقط بدون إظهار أرقام."
+                    : "Escrow is optional for the buyer when the seller enabled it. Normal buy uses in-app chat only."}
+                </p>
+              </div>
             </div>
           </div>
 

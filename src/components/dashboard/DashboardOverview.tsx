@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Megaphone, Eye, MessageCircle, TrendingUp, Plus, ArrowUpRight } from "lucide-react"
+import PackageQuotaCard from "@/components/dashboard/PackageQuotaCard"
 
 interface DashboardOverviewProps {
   locale: string
@@ -49,6 +50,8 @@ export default function DashboardOverview({ locale }: DashboardOverviewProps) {
 
   return (
     <div className="space-y-6">
+      <PackageQuotaCard locale={locale} />
+
       {isAdmin && (
         <Link
           href={`/${locale}/admin`}

@@ -69,7 +69,8 @@ export default function AdminOverview({ locale }: Props) {
 
   const s = data.stats || {}
   const topStats = [
-    { label: isRtl ? "متصلون الآن" : "Online now", value: s.onlineUsers ?? 0 },
+    { label: isRtl ? "متصلون (حسابات)" : "Online accounts", value: s.onlineUsers ?? 0 },
+    { label: isRtl ? "زوار الآن" : "Visitors now", value: s.visitorsOnline ?? s.guestsOnline ?? "—" },
     { label: isRtl ? "إجمالي المستخدمين" : "Users", value: s.users },
     { label: isRtl ? "إجمالي البائعين" : "Sellers", value: s.sellers },
     { label: isRtl ? "بائعين قيد المراجعة" : "Pending sellers", value: s.sellersPending },

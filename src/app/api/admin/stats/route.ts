@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/session"
 import { prisma } from "@/lib/prisma"
+import { presenceCount, upstashConfigured } from "@/lib/upstash"
 
 const db = prisma as any
 
@@ -12,6 +13,7 @@ export async function GET() {
 
   try {
     const since = new Date(Date.now() - 10 * 60 * 1000)
+    const visitorsOnline = await presenceCount().catch(() => null)
     const [
       users,
       onlineUsers,
@@ -50,7 +52,9 @@ export async function GET() {
         activePackages: packages,
         escrow,
         consultations,
-        guestsOnline: null,
+        guestsOnline: visitorsOnline,
+        visitorsOnline,
+        upstash: upstashConfigured(),
         note: "onlineUsers = logged-in accounts active in last 10 minutes",
       },
     })

@@ -15,36 +15,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || 50), 100)
-  const ads = await db.ad.findMany({
-    include: {
-      category: true,
-      user: { select: { id: true, name: true, phone: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  }).catch(() => [])
-  return NextResponse.json({ success: true, ads })
+  try {
+    const ads = await db.ad.findMany({
+      include: {
+        category: true,
+        user: { select: { id: true, name: true, phone: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    })
+    return NextResponse.json({ success: true, ads })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message, ads: [] }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: NextRequest) {
   if (!(await requireAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const { id, action } = await req.json()
+  const body = await req.json().catch(() => ({}))
+  const { id, action } = body
   if (!id || !action) {
     return NextResponse.json({ error: "Missing id/action" }, { status: 400 })
   }
-  if (action === "DELETE") {
-    await db.ad.delete({ where: { id } }).catch(() => null)
-    return NextResponse.json({ success: true })
+  try {
+    if (action === "DELETE") {
+      await db.ad.delete({ where: { id } })
+      return NextResponse.json({ success: true })
+    }
+    if (action === "PAUSE") {
+      await db.ad.update({ where: { id }, data: { status: "PAUSED" } })
+      return NextResponse.json({ success: true })
+    }
+    if (action === "ACTIVATE") {
+      await db.ad.update({ where: { id }, data: { status: "ACTIVE" } })
+      return NextResponse.json({ success: true })
+    }
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 })
   }
-  if (action === "PAUSE") {
-    await db.ad.update({ where: { id }, data: { status: "PAUSED" } })
-    return NextResponse.json({ success: true })
-  }
-  if (action === "ACTIVATE") {
-    await db.ad.update({ where: { id }, data: { status: "ACTIVE" } })
-    return NextResponse.json({ success: true })
-  }
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 })
 }

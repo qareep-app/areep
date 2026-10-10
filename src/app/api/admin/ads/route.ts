@@ -52,6 +52,16 @@ export async function PATCH(req: NextRequest) {
       await db.ad.update({ where: { id }, data: { status: "ACTIVE" } })
       return NextResponse.json({ success: true })
     }
+    if (action === "FEATURE") {
+      const until = new Date()
+      until.setDate(until.getDate() + 30)
+      await db.ad.update({ where: { id }, data: { isFeatured: true, featuredUntil: until } })
+      return NextResponse.json({ success: true })
+    }
+    if (action === "UNFEATURE") {
+      await db.ad.update({ where: { id }, data: { isFeatured: false, featuredUntil: null } })
+      return NextResponse.json({ success: true })
+    }
     return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 })

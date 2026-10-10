@@ -175,6 +175,80 @@ export default async function AdDetailPage({ params }: Props) {
                 </div>
               )}
 
+
+              {ad.attributes && typeof ad.attributes === "object" && (
+                <div className="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                  <h2 className="font-semibold text-gray-900 mb-3">
+                    {isRtl ? "المواصفات" : "Specifications"}
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                    {ad.condition && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "الحالة" : "Condition"}</div>
+                        <div className="font-medium">{ad.condition === "NEW" ? (isRtl ? "جديد" : "New") : (isRtl ? "مستعمل" : "Used")}</div>
+                      </div>
+                    )}
+                    {ad.attributes.brand && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "الماركة" : "Brand"}</div>
+                        <div className="font-medium">{String(ad.attributes.brand)}</div>
+                      </div>
+                    )}
+                    {ad.attributes.year && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "سنة الصنع" : "Year"}</div>
+                        <div className="font-medium">{String(ad.attributes.year)}</div>
+                      </div>
+                    )}
+                    {ad.attributes.mileage && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "الكيلومترات" : "Mileage"}</div>
+                        <div className="font-medium">{String(ad.attributes.mileage)} {isRtl ? "كم" : "km"}</div>
+                      </div>
+                    )}
+                    {ad.attributes.transmission && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "ناقل الحركة" : "Transmission"}</div>
+                        <div className="font-medium">
+                          {ad.attributes.transmission === "auto" ? (isRtl ? "أوتوماتيك" : "Auto") :
+                           ad.attributes.transmission === "manual" ? (isRtl ? "مانيوال" : "Manual") :
+                           String(ad.attributes.transmission)}
+                        </div>
+                      </div>
+                    )}
+                    {ad.attributes.fuel && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "الوقود" : "Fuel"}</div>
+                        <div className="font-medium">{String(ad.attributes.fuel)}</div>
+                      </div>
+                    )}
+                    {ad.attributes.color && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "اللون" : "Color"}</div>
+                        <div className="font-medium">{String(ad.attributes.color)}</div>
+                      </div>
+                    )}
+                    {ad.attributes.importType && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "النوع" : "Type"}</div>
+                        <div className="font-medium">
+                          {ad.attributes.importType === "imported" ? (isRtl ? "مستورد" : "Imported") :
+                           ad.attributes.importType === "transfer" ? (isRtl ? "تنازل" : "Transfer") :
+                           ad.attributes.importType === "local" ? (isRtl ? "محلي" : "Local") :
+                           String(ad.attributes.importType)}
+                        </div>
+                      </div>
+                    )}
+                    {ad.attributes.maintenanceType && (
+                      <div className="bg-white rounded-lg border px-3 py-2">
+                        <div className="text-[11px] text-gray-400">{isRtl ? "نوع الصيانة" : "Service type"}</div>
+                        <div className="font-medium">{String(ad.attributes.maintenanceType)}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h2 className="font-semibold text-gray-900 mb-2">
                   {isRtl ? "الوصف" : "Description"}

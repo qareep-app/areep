@@ -39,7 +39,7 @@ export default function AdminAds({ locale }: { locale: string }) {
     load()
   }, [])
 
-  const act = async (id: string, action: "PAUSE" | "ACTIVATE" | "DELETE") => {
+  const act = async (id: string, action: "PAUSE" | "ACTIVATE" | "DELETE" | "FEATURE" | "UNFEATURE") => {
     setBusy(id + action)
     try {
       const r = await fetch("/api/admin/ads", {
@@ -168,6 +168,15 @@ export default function AdminAds({ locale }: { locale: string }) {
                   {isRtl ? "تواصل" : "Contact"}
                 </Link>
 
+
+                <button
+                  type="button"
+                  disabled={!!busy}
+                  onClick={() => act(a.id, a.isFeatured ? "UNFEATURE" : "FEATURE")}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-xs font-semibold hover:bg-amber-200 disabled:opacity-50"
+                >
+                  {a.isFeatured ? (isRtl ? "إلغاء التمييز" : "Unfeature") : (isRtl ? "تمييز" : "Feature")}
+                </button>
                 <button
                   type="button"
                   disabled={!!busy}

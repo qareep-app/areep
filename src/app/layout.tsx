@@ -15,11 +15,13 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   icons: {
     icon: [
-      { url: "/app-icon.png", type: "image/png" },
-      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/app-icon.png", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: "/app-icon.png",
-    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -37,8 +39,10 @@ export default function RootLayout({
   return (
     <html className={`${cairo.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/app-icon.png?v=3" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=5" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=5" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('areep-theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
@@ -75,7 +79,7 @@ export default function RootLayout({
     '<div class="curtain left"></div>' +
     '<div class="curtain right"></div>' +
     '<div class="center">' +
-      '<img src="/app-icon.png?v=3" alt="قريب" width="128" height="128"/>' +
+      '<img src="/app-icon.png?v=4" alt="قريب" width="128" height="128"/>' +
       '<div class="t1">قريب</div>' +
       '<div class="t2">دكانك قريب</div>' +
     '</div>';

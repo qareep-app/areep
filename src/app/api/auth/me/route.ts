@@ -5,6 +5,7 @@ import {
   clearSessionOnResponse,
 } from "@/lib/session"
 import { isAdminPhone } from "@/lib/admin"
+import { resolveDbUserId } from "@/lib/packages"
 import { prisma } from "@/lib/prisma"
 
 const db = prisma as any
@@ -27,17 +28,22 @@ export async function GET() {
       })
     } catch {}
     session = { ...session, role: "ADMIN" }
-    const res = NextResponse.json({
-      user: session,
-      adminPhonesConfigured: true,
-    })
-    return attachSessionCookies(res, session)
   }
 
-  return NextResponse.json({
+  // Resolve real DB user id (tmp_ sessions)
+  try {
+    const dbId = await resolveDbUserId({ id: session.id, phone: session.phone })
+    session = { ...session, id: dbId }
+  } catch {}
+
+  const res = NextResponse.json({
     user: session,
     adminPhonesConfigured: Boolean(process.env.ADMIN_PHONES?.trim()),
   })
+  if (isAdminPhone(session.phone)) {
+    return attachSessionCookies(res, session)
+  }
+  return res
 }
 
 export async function DELETE() {

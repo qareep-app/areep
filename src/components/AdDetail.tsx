@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { MessageCircle, MapPin, Shield } from "lucide-react"
+import MarkSoldButton from "@/components/MarkSoldButton"
 
 interface AdDetailProps {
   locale: string
@@ -94,6 +95,16 @@ export default function AdDetail({ locale, adId }: AdDetailProps) {
           <MessageCircle size={18} />
           {isRtl ? "تواصل مع البائع (شات داخلي)" : "Contact seller (internal chat)"}
         </Link>
+
+        {ad.userId && (
+          <MarkSoldButton
+            locale={locale}
+            adId={ad.id}
+            sellerId={ad.userId}
+            price={Number(ad.price)}
+            status={ad.status}
+          />
+        )}
 
         <p className="text-xs text-center text-gray-400">
           {isRtl

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { timeAgo } from "@/lib/time-ago"
 import { Clock, Eye, MapPin, Shield } from "lucide-react"
+import MarkSoldButton from "@/components/MarkSoldButton"
 import { notFound } from "next/navigation"
 
 type Props = {
@@ -300,6 +301,14 @@ export default async function AdDetailPage({ params }: Props) {
                     : "Escrow is optional for the buyer when the seller enabled it. Normal buy uses in-app chat only."}
                 </p>
               </div>
+
+              <MarkSoldButton
+                locale={locale}
+                adId={ad.id}
+                sellerId={ad.userId}
+                price={Number(ad.price)}
+                status={ad.status}
+              />
             </div>
           </div>
 

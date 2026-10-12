@@ -54,16 +54,20 @@ export function getPackageMeta(slug: string) {
 }
 
 export async function resolveDbUserId(session: { id: string; phone?: string | null }) {
-  let userId = session.id
-  if (String(userId).startsWith("tmp_") && session.phone) {
-    const u = await db.user.upsert({
-      where: { phone: session.phone },
-      update: {},
-      create: { phone: session.phone, role: "USER" },
-    })
-    userId = u.id
+  // Always prefer phone → DB user when phone exists (avoids tmp_/stale session id mismatch)
+  if (session.phone) {
+    try {
+      const u = await db.user.upsert({
+        where: { phone: session.phone },
+        update: { lastActiveAt: new Date() },
+        create: { phone: session.phone, role: "USER" },
+      })
+      return u.id as string
+    } catch {
+      /* fall through */
+    }
   }
-  return userId as string
+  return session.id as string
 }
 
 export async function ensurePackageRow(slug: string) {
@@ -192,16 +196,38 @@ export async function getQuotaSnapshot(userId: string): Promise<QuotaSnapshot> {
   const maxAds = up.package?.maxAds ?? getPackageMeta(up.package?.slug || "free").maxAds
   const featuredAds = up.package?.featuredAds ?? getPackageMeta(up.package?.slug || "free").featuredAds
 
-  // Prefer real active ad count for adsUsed accuracy
+  // Real counts from ads table (source of truth)
   const realAds = await db.ad
-    .count({ where: { userId, status: { in: ["ACTIVE", "PAUSED", "PENDING"] } } })
+    .count({
+      where: {
+        userId,
+        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
+      },
+    })
     .catch(() => up.adsUsed ?? 0)
 
-  if (realAds !== (up.adsUsed ?? 0)) {
-    await db.userPackage.update({ where: { id: up.id }, data: { adsUsed: realAds } }).catch(() => null)
+  const realFeatured = await db.ad
+    .count({
+      where: {
+        userId,
+        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
+        isFeatured: true,
+      },
+    })
+    .catch(() => up.featuredUsed ?? 0)
+
+  // Sync counters on UserPackage for admin/reporting
+  if (realAds !== (up.adsUsed ?? 0) || realFeatured !== (up.featuredUsed ?? 0)) {
+    await db.userPackage
+      .update({
+        where: { id: up.id },
+        data: { adsUsed: realAds, featuredUsed: realFeatured },
+      })
+      .catch(() => null)
   }
 
   const adsUsed = realAds
+  const featuredUsed = realFeatured
   return {
     userPackageId: up.id,
     slug: up.package?.slug || "free",
@@ -209,8 +235,8 @@ export async function getQuotaSnapshot(userId: string): Promise<QuotaSnapshot> {
     adsUsed,
     adsRemaining: maxAds == null ? null : Math.max(0, maxAds - adsUsed),
     featuredAds: featuredAds ?? 0,
-    featuredUsed: up.featuredUsed ?? 0,
-    featuredRemaining: Math.max(0, (featuredAds ?? 0) - (up.featuredUsed ?? 0)),
+    featuredUsed,
+    featuredRemaining: Math.max(0, (featuredAds ?? 0) - featuredUsed),
     endDate: up.endDate,
   }
 }

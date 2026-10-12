@@ -169,7 +169,9 @@ export default function PackagesList({ locale }: PackagesListProps) {
                 ? isRtl
                   ? "غير محدود"
                   : "Unlimited"
-                : `${quota?.adsUsed ?? 0} / ${quota.maxAds}`}
+                : isRtl
+                  ? `مستخدم ${quota?.adsUsed ?? 0} من ${quota.maxAds}`
+                  : `used ${quota?.adsUsed ?? 0} of ${quota.maxAds}`}
             </div>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
@@ -179,7 +181,9 @@ export default function PackagesList({ locale }: PackagesListProps) {
             </div>
             <div className="text-2xl font-bold mt-1">{quota?.featuredRemaining ?? 0}</div>
             <div className="text-[11px] text-emerald-100 mt-1">
-              {quota?.featuredUsed ?? 0} / {quota?.featuredAds ?? 0}
+              {isRtl
+                ? `مستخدم ${quota?.featuredUsed ?? 0} من ${quota?.featuredAds ?? 0}`
+                : `used ${quota?.featuredUsed ?? 0} of ${quota?.featuredAds ?? 0}`}
             </div>
           </div>
         </div>

@@ -123,17 +123,14 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Number(searchParams.get("limit") || 20), 50)
 
     let ownerUserId: string | null = null
+    let ownerPhone: string | null = null
     if (mine) {
       const session = await getSession()
       if (!session?.id) {
         return NextResponse.json({ success: true, ads: [], mine: true })
       }
-      ownerUserId = session.id
-      // resolve tmp_ ids
-      if (ownerUserId.startsWith("tmp_")) {
-        const u = await prisma.user.findUnique({ where: { phone: session.phone } }).catch(() => null)
-        ownerUserId = u?.id || ownerUserId
-      }
+      ownerUserId = await resolveDbUserId({ id: session.id, phone: session.phone })
+      ownerPhone = session.phone || null
     }
 
     const priceFilter: any = {}
@@ -158,7 +155,9 @@ export async function GET(req: NextRequest) {
       where: {
         // For "my ads" show all statuses of this user; public list only ACTIVE
         ...(mine
-          ? { userId: ownerUserId! }
+          ? ownerPhone
+            ? { OR: [{ userId: ownerUserId! }, { user: { phone: ownerPhone } }] }
+            : { userId: ownerUserId! }
           : { status: "ACTIVE" }),
         ...(category ? { category: { slug: category } } : {}),
         ...(condition ? { condition } : {}),

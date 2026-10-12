@@ -10,7 +10,7 @@ export async function GET() {
 
   try {
     const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
-    const q = await getQuotaSnapshot(userId)
+    const q = await getQuotaSnapshot(userId, session.phone)
     const meta = PACKAGE_META[q.slug] || PACKAGE_META.free
 
     return NextResponse.json({

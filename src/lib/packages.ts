@@ -191,32 +191,47 @@ export type QuotaSnapshot = {
   endDate: Date | string | null
 }
 
-export async function getQuotaSnapshot(userId: string): Promise<QuotaSnapshot> {
+export async function getQuotaSnapshot(
+  userId: string,
+  phone?: string | null
+): Promise<QuotaSnapshot> {
   const up = await getActiveUserPackage(userId)
   const maxAds = up.package?.maxAds ?? getPackageMeta(up.package?.slug || "free").maxAds
   const featuredAds = up.package?.featuredAds ?? getPackageMeta(up.package?.slug || "free").featuredAds
 
-  // Real counts from ads table (source of truth)
-  const realAds = await db.ad
-    .count({
-      where: {
+  // If ads were saved under a different userId (old session), re-link by phone
+  if (phone) {
+    try {
+      await db.ad.updateMany({
+        where: {
+          userId: { not: userId },
+          user: { phone },
+        },
+        data: { userId },
+      })
+    } catch {
+      /* relation filter may fail on some drivers — ignore */
+    }
+  }
+
+  const whereBase: any = phone
+    ? {
+        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
+        OR: [{ userId }, { user: { phone } }],
+      }
+    : {
         userId,
         status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
-      },
-    })
-    .catch(() => up.adsUsed ?? 0)
+      }
+
+  const realAds = await db.ad.count({ where: whereBase }).catch(() => up.adsUsed ?? 0)
 
   const realFeatured = await db.ad
     .count({
-      where: {
-        userId,
-        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
-        isFeatured: true,
-      },
+      where: { ...whereBase, isFeatured: true },
     })
     .catch(() => up.featuredUsed ?? 0)
 
-  // Sync counters on UserPackage for admin/reporting
   if (realAds !== (up.adsUsed ?? 0) || realFeatured !== (up.featuredUsed ?? 0)) {
     await db.userPackage
       .update({
@@ -226,17 +241,15 @@ export async function getQuotaSnapshot(userId: string): Promise<QuotaSnapshot> {
       .catch(() => null)
   }
 
-  const adsUsed = realAds
-  const featuredUsed = realFeatured
   return {
     userPackageId: up.id,
     slug: up.package?.slug || "free",
     maxAds: maxAds ?? null,
-    adsUsed,
-    adsRemaining: maxAds == null ? null : Math.max(0, maxAds - adsUsed),
+    adsUsed: realAds,
+    adsRemaining: maxAds == null ? null : Math.max(0, maxAds - realAds),
     featuredAds: featuredAds ?? 0,
-    featuredUsed,
-    featuredRemaining: Math.max(0, (featuredAds ?? 0) - featuredUsed),
+    featuredUsed: realFeatured,
+    featuredRemaining: Math.max(0, (featuredAds ?? 0) - realFeatured),
     endDate: up.endDate,
   }
 }

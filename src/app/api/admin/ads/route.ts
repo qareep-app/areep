@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/session"
+import { requireAdminSession } from "@/lib/admin"
 import { prisma } from "@/lib/prisma"
 
 const db = prisma as any
 
-async function requireAdmin() {
-  const session = await getSession()
-  if (!session || session.role !== "ADMIN") return null
-  return session
-}
 
 export async function GET(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || 50), 100)
@@ -31,7 +27,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const body = await req.json().catch(() => ({}))

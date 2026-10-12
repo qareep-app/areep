@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/session"
+import { requireAdminSession } from "@/lib/admin"
 import { prisma } from "@/lib/prisma"
 import { presenceCount, upstashConfigured } from "@/lib/upstash"
 

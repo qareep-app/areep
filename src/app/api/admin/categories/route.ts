@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/session"
+import { requireAdminSession } from "@/lib/admin"
 import { prisma } from "@/lib/prisma"
 
 const db = prisma as any
 
-async function requireAdmin() {
-  const session = await getSession()
-  if (!session || session.role !== "ADMIN") return null
-  return session
-}
-
 export async function GET() {
-  if (!(await requireAdmin())) {
+  if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const items = await db.category.findMany({ orderBy: { sortOrder: "asc" } }).catch(() => [])
@@ -19,7 +13,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const body = await req.json().catch(() => ({}))
@@ -47,4 +41,35 @@ export async function POST(req: NextRequest) {
     },
   })
   return NextResponse.json({ success: true, item })
+}
+
+/** Reorder: body.order = [{ id, sortOrder }, ...] */
+export async function PATCH(req: NextRequest) {
+  if (!(await requireAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const body = await req.json().catch(() => ({}))
+
+  if (Array.isArray(body.order)) {
+    for (const row of body.order) {
+      if (!row?.id) continue
+      await db.category
+        .update({
+          where: { id: row.id },
+          data: { sortOrder: Number(row.sortOrder) || 0 },
+        })
+        .catch(() => null)
+    }
+    return NextResponse.json({ success: true })
+  }
+
+  if (body.id && typeof body.isActive === "boolean") {
+    await db.category.update({
+      where: { id: body.id },
+      data: { isActive: body.isActive },
+    })
+    return NextResponse.json({ success: true })
+  }
+
+  return NextResponse.json({ error: "Invalid body" }, { status: 400 })
 }

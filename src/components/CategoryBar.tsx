@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Car, Wrench, Bike, Settings, Building2, Smartphone,
   Tv, Sofa, Shirt, PawPrint, Briefcase, Package, Home,
@@ -74,61 +74,63 @@ const gradients: Record<string, string> = {
   other: "from-gray-400 to-gray-600",
 }
 
-const barItems = [
-  { slug: "", nameAr: "الرئيسية", nameEn: "Home" },
+const fallbackItems = [
   { slug: "cars", nameAr: "سيارات", nameEn: "Cars" },
   { slug: "car-parts", nameAr: "قطع غيار", nameEn: "Parts" },
   { slug: "motorcycles", nameAr: "موتسيكلات", nameEn: "Bikes" },
   { slug: "motorcycle-parts", nameAr: "قطع موتسيكل", nameEn: "Bike parts" },
-  { slug: "maintenance", nameAr: "مراكز صيانة", nameEn: "Maintenance" },
+  { slug: "maintenance", nameAr: "مراكز صيانة", nameEn: "Service" },
   { slug: "real-estate-sale", nameAr: "تمليك", nameEn: "Sale" },
   { slug: "real-estate-rent", nameAr: "إيجار", nameEn: "Rent" },
-  { slug: "mobiles", nameAr: "موبايلات", nameEn: "Phones" },
-  { slug: "electronics", nameAr: "أجهزة", nameEn: "Electronics" },
-  { slug: "furniture", nameAr: "أثاث", nameEn: "Furniture" },
-  { slug: "fashion", nameAr: "أزياء", nameEn: "Fashion" },
-  { slug: "pets", nameAr: "حيوانات", nameEn: "Pets" },
-  { slug: "jobs", nameAr: "وظائف", nameEn: "Jobs" },
-  { slug: "services", nameAr: "خدمات", nameEn: "Services" },
-  { slug: "training", nameAr: "تدريب", nameEn: "Training" },
-  { slug: "games", nameAr: "ألعاب", nameEn: "Games" },
-  { slug: "food", nameAr: "طعام", nameEn: "Food" },
-  { slug: "events", nameAr: "مناسبات", nameEn: "Events" },
-  { slug: "programming", nameAr: "برمجة", nameEn: "Code" },
-  { slug: "gardens", nameAr: "حدائق", nameEn: "Gardens" },
-  { slug: "arts", nameAr: "فنون", nameEn: "Arts" },
-  { slug: "tourism", nameAr: "سياحة", nameEn: "Tourism" },
-  { slug: "trips", nameAr: "رحلات", nameEn: "Trips" },
-  { slug: "antiques", nameAr: "نوادر", nameEn: "Antiques" },
-  { slug: "lost-found", nameAr: "مفقودات", nameEn: "Lost" },
-  { slug: "other", nameAr: "أخرى", nameEn: "Other" },
 ]
 
 export default function CategoryBar({ locale = "ar" }: Props) {
   const isRtl = locale === "ar"
   const ref = useRef<HTMLDivElement>(null)
+  const [items, setItems] = useState<{ slug: string; nameAr: string; nameEn: string }[]>(fallbackItems)
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((d) => {
+        const list = d.categories || d.items || []
+        if (Array.isArray(list) && list.length) {
+          const sorted = [...list]
+            .filter((c: any) => c.isActive !== false)
+            .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+            .map((c: any) => ({
+              slug: c.slug,
+              nameAr: c.nameAr || c.slug,
+              nameEn: c.nameEn || c.slug,
+            }))
+          if (sorted.length) setItems(sorted)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const scroll = (dir: number) => {
     ref.current?.scrollBy({ left: dir * 200, behavior: "smooth" })
   }
 
+  const bar = [{ slug: "", nameAr: "الرئيسية", nameEn: "Home" }, ...items]
+
   return (
-    <div className="bg-white border-b border-gray-100 sticky top-[72px] z-40">
-      <div className="max-w-7xl mx-auto px-2 relative flex items-center gap-1">
+    <div className="bg-white border-b border-gray-100 sticky top-0 z-30">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
         <button
           type="button"
           onClick={() => scroll(isRtl ? 1 : -1)}
-          className="shrink-0 p-1.5 rounded-full bg-white shadow border text-gray-500 hover:bg-gray-50"
-          aria-label="prev"
+          className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white shadow border flex items-center justify-center"
         >
-          {isRtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
         <div
           ref={ref}
-          className="flex gap-3 overflow-x-auto py-3 scrollbar-hide scroll-smooth flex-1"
+          className="flex gap-3 overflow-x-auto py-3 px-8 scrollbar-hide"
           style={{ scrollbarWidth: "none" }}
         >
-          {barItems.map((c) => {
+          {bar.map((c) => {
             const Icon = iconMap[c.slug] || Package
             const grad = gradients[c.slug] || "from-gray-400 to-gray-600"
             const href = c.slug ? `/${locale}/ads?category=${c.slug}` : `/${locale}`
@@ -136,14 +138,14 @@ export default function CategoryBar({ locale = "ar" }: Props) {
               <Link
                 key={c.slug || "home"}
                 href={href}
-                className="flex flex-col items-center gap-1 min-w-[64px] shrink-0 group"
+                className="flex flex-col items-center gap-1.5 min-w-[64px] shrink-0 group"
               >
-                <div
+                <span
                   className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition`}
                 >
-                  <Icon size={22} strokeWidth={2} />
-                </div>
-                <span className="text-[11px] font-medium text-gray-600 text-center leading-tight max-w-[72px]">
+                  <Icon size={22} strokeWidth={2.2} />
+                </span>
+                <span className="text-[11px] text-gray-700 font-medium text-center leading-tight">
                   {isRtl ? c.nameAr : c.nameEn}
                 </span>
               </Link>
@@ -153,10 +155,9 @@ export default function CategoryBar({ locale = "ar" }: Props) {
         <button
           type="button"
           onClick={() => scroll(isRtl ? -1 : 1)}
-          className="shrink-0 p-1.5 rounded-full bg-white shadow border text-gray-500 hover:bg-gray-50"
-          aria-label="next"
+          className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white shadow border flex items-center justify-center"
         >
-          {isRtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+          {isRtl ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
         </button>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { getSession, type SessionUser } from "@/lib/session"
+
 /** Normalize Egyptian mobile for ADMIN_PHONES comparison */
 export function normalizePhone(phone: string): string {
   let p = String(phone || "").replace(/[\s\-()]/g, "")
@@ -14,4 +16,15 @@ export function isAdminPhone(phone: string | null | undefined): boolean {
     .filter(Boolean)
   const n = normalizePhone(phone)
   return list.includes(n)
+}
+
+/** Session is admin if role cookie says ADMIN OR phone is in ADMIN_PHONES */
+export async function requireAdminSession(): Promise<SessionUser | null> {
+  const session = await getSession()
+  if (!session) return null
+  if (session.role === "ADMIN") return session
+  if (isAdminPhone(session.phone)) {
+    return { ...session, role: "ADMIN" }
+  }
+  return null
 }

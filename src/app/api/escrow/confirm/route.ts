@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       message = `تم تحرير المبلغ للبائع (${Number(deal.amount) - Number(deal.sellerCommission)} ج.م بعد خصم العمولة)`
       await db.escrowDeal.update({
         where: { id: dealId },
-        data: { status: newStatus, releasedAt: new Date() },
+        data: { status: newStatus, releasedAt: new Date(), payoutStatus: "PENDING_PAYOUT" },
       })
       return NextResponse.json({
         success: true,

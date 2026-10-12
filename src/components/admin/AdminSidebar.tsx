@@ -12,6 +12,7 @@ import {
   FileText,
   AlertTriangle,
   FolderOpen,
+  Wallet,
 } from "lucide-react"
 
 interface AdminSidebarProps {
@@ -26,6 +27,7 @@ const items = [
   { id: "ads", href: "/admin/ads", icon: Megaphone, ar: "الإعلانات", en: "Ads" },
   { id: "categories", href: "/admin/categories", icon: FolderOpen, ar: "التصنيفات", en: "Categories" },
   { id: "transactions", href: "/admin/transactions", icon: CreditCard, ar: "المعاملات", en: "Transactions" },
+  { id: "payouts", href: "/admin/payouts", icon: Wallet, ar: "مستحقات البائعين", en: "Seller payouts" },
   { id: "contracts", href: "/admin/contracts", icon: FileText, ar: "العقود", en: "Contracts" },
   { id: "legal", href: "/admin/legal", icon: Scale, ar: "المستشارين القانونيين", en: "Legal Consultants" },
   { id: "disputes", href: "/admin/disputes", icon: AlertTriangle, ar: "النزاعات", en: "Disputes" },

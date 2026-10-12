@@ -39,6 +39,13 @@ model User {
   addressDetail String?
   addressExtra  String?
   addressCity   String?
+  // Payout / استلام مستحقات الوسيط
+  bankName          String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankIban          String?
+  walletType        String?   // vodafone | instapay | etisalat | orange | bank_only
+  walletNumber      String?
   maxOrderValue Decimal?  @db.Decimal(12, 2) // ceiling from verification level
   sellerStatus  String?   // null | PENDING | APPROVED | REJECTED | SUSPENDED
   createdAt     DateTime  @default(now())
@@ -447,11 +454,18 @@ model EscrowDeal {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   releasedAt        DateTime?
+  // صرف مستحقات البائع (يدوي عبر الأدمن أو لاحقاً API)
+  payoutStatus      String    @default("NONE") // NONE | PENDING_PAYOUT | PAID_OUT
+  payoutAt          DateTime?
+  payoutRef         String?
+  payoutMethod      String?
+  payoutNote        String?
 
   @@index([adId])
   @@index([sellerId])
   @@index([buyerId])
   @@index([status])
+  @@index([payoutStatus])
 }
 
 
@@ -509,6 +523,12 @@ model SellerApplication {
   addressDetail   String?
   addressExtra    String?
   addressCity     String?
+  bankName          String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankIban          String?
+  walletType        String?
+  walletNumber      String?
   status          String   @default("PENDING") // PENDING | APPROVED | REJECTED
   adminNote       String?
   createdAt       DateTime @default(now())

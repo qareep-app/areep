@@ -7,6 +7,7 @@ import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar"
 import { User, Store, Megaphone, Package, Shield, Scale, Save, Loader2 } from "lucide-react"
+import PayoutInfoForm from "@/components/dashboard/PayoutInfoForm"
 
 export default function SettingsPage() {
   const params = useParams()
@@ -58,6 +59,9 @@ export default function SettingsPage() {
               <h1 className="text-2xl font-bold text-gray-900">
                 {isRtl ? "الإعدادات" : "Settings"}
               </h1>
+
+              <PayoutInfoForm locale={locale} />
+
 
               <div className="bg-white rounded-2xl border p-5 space-y-4">
                 <h2 className="font-semibold flex items-center gap-2">

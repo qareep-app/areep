@@ -12,7 +12,7 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "قريب | Areep - دكانك قريب",
   description: "منصة الإعلانات المبوبة في مصر - بيع واشتري من الناس اللي حواليك",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://areep.vercel.app"),
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -22,6 +22,28 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.ico",
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "ar_EG",
+    url: "https://areep.vercel.app",
+    siteName: "قريب",
+    title: "قريب | دكانك قريب",
+    description: "منصة الإعلانات المبوبة في مصر - بيع واشتري من الناس اللي حواليك",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "قريب - دكانك قريب",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "قريب | دكانك قريب",
+    description: "منصة الإعلانات المبوبة في مصر - بيع واشتري من الناس اللي حواليك",
+    images: ["/og-image.png"],
   },
   manifest: "/manifest.json",
   appleWebApp: {

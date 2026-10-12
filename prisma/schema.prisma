@@ -490,6 +490,31 @@ model LegalConsultation {
 }
 
 
+
+// ====================== COMMISSION INVOICES (بيع عادي / عند الاستلام) ======================
+model CommissionInvoice {
+  id            String   @id @default(cuid())
+  sellerId      String
+  adId          String?
+  dealAmount    Decimal  @db.Decimal(14, 2) // قيمة البيعة
+  feePercent    Decimal  @db.Decimal(5, 2) @default(2)
+  feeAmount     Decimal  @db.Decimal(14, 2) // 2% normally
+  status        String   @default("PENDING") // PENDING | PAID | CANCELLED | WAIVED
+  dueAt         DateTime
+  paidAt        DateTime?
+  paymobOrderId String?
+  note          String?
+  source        String   @default("COD") // COD | MANUAL | CHAT
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([sellerId])
+  @@index([adId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([paymobOrderId])
+}
+
 model OtpCode {
   id        String   @id @default(cuid())
   phone     String

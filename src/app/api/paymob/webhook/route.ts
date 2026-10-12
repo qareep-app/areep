@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { activateUserPackage, parsePackageOrderId } from "@/lib/packages"
+import { markCommissionInvoicePaid } from "@/lib/commission-invoice"
 
 const db = prisma as any
 
@@ -16,6 +17,16 @@ async function handleSuccess(specialRef: string) {
       } catch (e) {
         console.error("package activate failed", e)
       }
+    }
+  }
+
+
+  if (specialRef.startsWith("commission_")) {
+    try {
+      await markCommissionInvoicePaid(specialRef)
+      console.log("commission invoice paid", specialRef)
+    } catch (e) {
+      console.error("commission invoice fail", e)
     }
   }
 

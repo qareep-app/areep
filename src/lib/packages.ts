@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { assertNoOverdueCommissions } from "@/lib/commission-invoice"
 
 const db = prisma as any
 
@@ -216,6 +217,15 @@ export async function getQuotaSnapshot(userId: string): Promise<QuotaSnapshot> {
 
 /** Throws-friendly check before creating an ad */
 export async function assertCanPostAd(userId: string) {
+  const overdueCheck = await assertNoOverdueCommissions(userId)
+  if (!overdueCheck.ok) {
+    return {
+      ok: false as const,
+      error: overdueCheck.error,
+      quota: null as any,
+      code: "COMMISSION_OVERDUE",
+    }
+  }
   const q = await getQuotaSnapshot(userId)
   if (q.maxAds != null && q.adsUsed >= q.maxAds) {
     return {
@@ -242,7 +252,11 @@ export async function recordAdCreated(userId: string, adId: string) {
     data: { adsUsed },
   })
 
-  // Auto feature if remaining
+  // Auto feature if remaining and no overdue commission
+  const od = await assertNoOverdueCommissions(userId)
+  if (!od.ok) {
+    return { featured: false, adsUsed, featuredUsed, blockedFeature: true }
+  }
   if (featuredAds > featuredUsed) {
     const until = up.endDate || new Date(Date.now() + 30 * 864e5)
     await db.ad.update({

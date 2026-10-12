@@ -14,6 +14,7 @@ import {
   Scale,
   UserPlus,
   LogOut,
+  Receipt,
 } from "lucide-react"
 
 interface DashboardSidebarProps {
@@ -27,6 +28,7 @@ const baseItems = [
   { id: "messages", href: "/messages", icon: MessageCircle, labelAr: "الرسائل", labelEn: "Messages" },
   { id: "transactions", href: "/dashboard/transactions", icon: CreditCard, labelAr: "المعاملات", labelEn: "Transactions" },
   { id: "packages", href: "/dashboard/packages", icon: Package, labelAr: "الباقات", labelEn: "Packages" },
+  { id: "commissions", href: "/dashboard/commissions", icon: Receipt, labelAr: "عمولاتي", labelEn: "Commissions" },
   { id: "escrow", href: "/dashboard/escrow", icon: Shield, labelAr: "نظام الوسيط", labelEn: "Escrow" },
   { id: "contracts", href: "/dashboard/contracts", icon: FileText, labelAr: "العقود", labelEn: "Contracts" },
   { id: "legal", href: "/dashboard/legal", icon: Scale, labelAr: "المستشار القانوني", labelEn: "Legal Advisor" },

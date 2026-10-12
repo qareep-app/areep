@@ -18,12 +18,17 @@ export type CommissionType =
 export type CommissionResult = {
   sellerPercent: number
   buyerPercent: number
-  sellerAmount?: number
-  buyerAmount?: number
-  totalCommission?: number
+  sellerAmount: number
+  buyerAmount: number
+  totalCommission: number
   rentMonthsEach?: number
+  /** ما يدفعه المشتري الآن (السعر + عمولته) */
+  buyerPaysTotal: number
+  /** ما يستلمه البائع بعد الخصم */
+  sellerReceives: number
   noteAr: string
   noteEn: string
+  rule: string
 }
 
 export function calculateCommission(opts: {
@@ -48,55 +53,79 @@ export function calculateCommission(opts: {
     slug === "real-estate-rent"
   const isSale =
     type === "REAL_ESTATE_SALE" ||
-    slug.includes("sale") ||
+    (slug.includes("sale") && slug.includes("estate")) ||
     slug === "real-estate-sale"
 
-  let result: CommissionResult
+  let sellerPercent = 2
+  let buyerPercent = 0
+  let rentMonthsEach: number | undefined
+  let noteAr = "عمولة ثابتة 2% على البائع"
+  let noteEn = "Fixed 2% on seller"
+  let rule = "STANDARD_2"
 
   if (isRent) {
-    result = {
-      sellerPercent: 0,
-      buyerPercent: 0,
-      rentMonthsEach: 0.5,
-      noteAr: "إيجار: نصف شهر من المؤجر + نصف شهر من المستأجر",
-      noteEn: "Rent: half month from each party",
-    }
+    sellerPercent = 0
+    buyerPercent = 0
+    rentMonthsEach = 0.5
+    noteAr = "إيجار: نصف شهر من المؤجر + نصف شهر من المستأجر"
+    noteEn = "Rent: half month from each party"
+    rule = "RENT_HALF_MONTH"
   } else if (isCars || isSale) {
     if (escrow) {
-      result = {
-        sellerPercent: 2.5,
-        buyerPercent: 2.5,
-        noteAr: "مع وسيط قريب: 2.5% بائع + 2.5% مشتري",
-        noteEn: "With escrow: 2.5% seller + 2.5% buyer",
-      }
+      sellerPercent = 2.5
+      buyerPercent = 2.5
+      noteAr = "مع وسيط قريب: 2.5% بائع + 2.5% مشتري"
+      noteEn = "With escrow: 2.5% seller + 2.5% buyer"
+      rule = "ESCROW_2_5_2_5"
     } else {
-      result = {
-        sellerPercent: 2,
-        buyerPercent: 0,
-        noteAr: "بدون وسيط: 2% على البائع فقط",
-        noteEn: "Without escrow: 2% seller only",
-      }
+      sellerPercent = 2
+      buyerPercent = 0
+      noteAr = "بدون وسيط: 2% على البائع فقط"
+      noteEn = "Without escrow: 2% seller only"
+      rule = "NO_ESCROW_2"
     }
-  } else {
-    result = {
-      sellerPercent: 2,
-      buyerPercent: 0,
-      noteAr: "عمولة ثابتة 2% على البائع",
-      noteEn: "Fixed 2% on seller",
-    }
+  } else if (escrow) {
+    // وسيط على فئات أخرى: نفس 2% بائع (المشتري يدفع السعر كاملاً)
+    sellerPercent = 2
+    buyerPercent = 0
+    noteAr = "وسيط: 2% على البائع من قيمة الصفقة"
+    noteEn = "Escrow: 2% seller from deal amount"
+    rule = "ESCROW_STANDARD_2"
   }
 
-  if (price > 0) {
-    result.sellerAmount = Math.round(price * (result.sellerPercent / 100) * 100) / 100
-    result.buyerAmount = Math.round(price * (result.buyerPercent / 100) * 100) / 100
-    result.totalCommission =
-      Math.round(((result.sellerAmount || 0) + (result.buyerAmount || 0)) * 100) / 100
+  let sellerAmount = 0
+  let buyerAmount = 0
+
+  if (isRent && price > 0) {
+    // price = إيجار الشهر
+    sellerAmount = Math.round(price * 0.5 * 100) / 100
+    buyerAmount = Math.round(price * 0.5 * 100) / 100
+  } else if (price > 0) {
+    sellerAmount = Math.round(price * (sellerPercent / 100) * 100) / 100
+    buyerAmount = Math.round(price * (buyerPercent / 100) * 100) / 100
   }
 
-  return result
+  const totalCommission = Math.round((sellerAmount + buyerAmount) * 100) / 100
+  // المشتري يدفع: قيمة السلعة + عمولته (وعند الإيجار: شهر + نصف شهر عمولته)
+  const buyerPaysTotal = Math.round((price + buyerAmount) * 100) / 100
+  // البائع يستلم: قيمة السلعة - عمولته
+  const sellerReceives = Math.round((price - sellerAmount) * 100) / 100
+
+  return {
+    sellerPercent,
+    buyerPercent,
+    sellerAmount,
+    buyerAmount,
+    totalCommission,
+    rentMonthsEach,
+    buyerPaysTotal,
+    sellerReceives,
+    noteAr,
+    noteEn,
+    rule,
+  }
 }
 
-/** alias */
 export const calcCommission = calculateCommission
 
 /** سقف قيمة الطلب حسب مستوى التوثيق — لا يغيّر العمولة */

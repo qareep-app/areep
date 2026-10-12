@@ -3,6 +3,7 @@ import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar"
 import EscrowList from "@/components/escrow/EscrowList"
+import { Suspense } from "react"
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -20,7 +21,7 @@ export default async function EscrowPage({ params }: Props) {
           <div className="flex flex-col lg:flex-row gap-6">
             <DashboardSidebar locale={locale} active="escrow" />
             <div className="flex-1 min-w-0">
-              <EscrowList locale={locale} />
+              <Suspense fallback={<div className="p-8 text-gray-400">...</div>}><EscrowList locale={locale} /></Suspense>
             </div>
           </div>
         </div>

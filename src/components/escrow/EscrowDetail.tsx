@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Shield,
@@ -9,62 +9,133 @@ import {
   ArrowLeft,
   ArrowRight,
   CreditCard,
-  Package,
   AlertTriangle,
+  Loader2,
+  Wallet,
 } from "lucide-react"
-import { calculateCommission } from "@/lib/commission"
 
 interface EscrowDetailProps {
   locale: string
   escrowId: string
 }
 
+const steps = [
+  { key: "PENDING_PAYMENT", labelAr: "انتظار الدفع", labelEn: "Payment" },
+  { key: "HELD", labelAr: "محجوز", labelEn: "Held" },
+  { key: "DELIVERED", labelAr: "تم التسليم", labelEn: "Delivered" },
+  { key: "RELEASED", labelAr: "مكتملة", labelEn: "Released" },
+]
+
 export default function EscrowDetail({ locale, escrowId }: EscrowDetailProps) {
   const isRtl = locale === "ar"
-  const [status, setStatus] = useState<"PENDING" | "PAID" | "DELIVERED" | "COMPLETED">("PAID")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState("")
+  const [data, setData] = useState<any>(null)
 
-  // Mock deal data (will come from API)
-  const deal = {
-    id: escrowId,
-    adTitleAr: "تويوتا كورولا 2020 حالة ممتازة",
-    adTitleEn: "Toyota Corolla 2020 excellent condition",
-    amount: 850000,
-    category: "cars",
-    useEscrow: true,
-    role: "seller" as "seller" | "buyer",
-    otherParty: "محمد أحمد",
-    createdAt: "2026-10-01 14:30",
-  }
-
-  const commission = calculateCommission({
-    amount: deal.amount,
-    commissionType: "CARS_PARTS",
-    useEscrow: true,
-  })
-
-  const handleAction = async (action: "confirm_delivery" | "confirm_receipt" | "pay") => {
+  const load = () => {
     setLoading(true)
-    // TODO: Call API /api/escrow/...
-    await new Promise((r) => setTimeout(r, 800))
-    if (action === "pay") setStatus("PAID")
-    if (action === "confirm_delivery") setStatus("DELIVERED")
-    if (action === "confirm_receipt") setStatus("COMPLETED")
-    setLoading(false)
+    fetch(`/api/escrow/${escrowId}`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) setMsg(d.error)
+        else setData(d)
+      })
+      .catch((e) => setMsg(e.message))
+      .finally(() => setLoading(false))
   }
 
-  const steps = [
-    { key: "PENDING", labelAr: "في انتظار الدفع", labelEn: "Awaiting Payment" },
-    { key: "PAID", labelAr: "تم الدفع", labelEn: "Paid" },
-    { key: "DELIVERED", labelAr: "تم التسليم", labelEn: "Delivered" },
-    { key: "COMPLETED", labelAr: "مكتملة", labelEn: "Completed" },
-  ]
+  useEffect(() => {
+    load()
+  }, [escrowId])
 
-  const currentStepIndex = steps.findIndex((s) => s.key === status)
+  const act = async (action: string) => {
+    setBusy(true)
+    setMsg("")
+    try {
+      if (action === "pay") {
+        const r = await fetch("/api/escrow/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ dealId: escrowId }),
+        })
+        const d = await r.json()
+        if (!r.ok) throw new Error(d.error || "فشل الدفع")
+        if (d.iframeUrl) {
+          window.location.href = d.iframeUrl
+          return
+        }
+        if (d.demo) {
+          // اختبار بدون Paymob
+          const r2 = await fetch("/api/escrow/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ dealId: escrowId, action: "mark_paid" }),
+          })
+          const d2 = await r2.json()
+          if (!r2.ok) throw new Error(d2.error || "fail")
+          setMsg(d2.message || "تم (وضع تجريبي)")
+          load()
+          return
+        }
+        throw new Error(d.message || "لا يوجد رابط دفع")
+      }
+
+      const r = await fetch("/api/escrow/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ dealId: escrowId, action }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || "فشل")
+      setMsg(d.message || "تم")
+      load()
+    } catch (e: any) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-gray-500 p-8">
+        <Loader2 className="animate-spin" size={18} />
+        {isRtl ? "جاري التحميل..." : "Loading..."}
+      </div>
+    )
+  }
+
+  if (!data?.deal) {
+    return (
+      <div className="p-6 text-red-600">
+        {msg || (isRtl ? "الصفقة غير موجودة" : "Deal not found")}
+        <div className="mt-3">
+          <Link href={`/${locale}/dashboard/escrow`} className="text-emerald-700 underline text-sm">
+            {isRtl ? "رجوع" : "Back"}
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const deal = data.deal
+  const ad = data.ad
+  const role = deal.role as "buyer" | "seller" | "admin"
+  const status = deal.status as string
+
+  const stepIndex = Math.max(
+    0,
+    steps.findIndex((s) => s.key === status)
+  )
+  const doneKeys = ["RELEASED", "COMPLETED"]
+  const activeIndex = doneKeys.includes(status) ? steps.length - 1 : stepIndex
 
   return (
     <div className="space-y-6">
-      {/* Back */}
       <Link
         href={`/${locale}/dashboard/escrow`}
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-emerald-600"
@@ -73,141 +144,159 @@ export default function EscrowDetail({ locale, escrowId }: EscrowDetailProps) {
         {isRtl ? "رجوع للصفقات" : "Back to deals"}
       </Link>
 
-      {/* Header */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <div className="flex items-start gap-3">
           <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
             <Shield size={24} />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-gray-900 truncate">
-              {isRtl ? deal.adTitleAr : deal.adTitleEn}
+            <h1 className="text-lg font-bold text-gray-900">
+              {ad?.titleAr || (isRtl ? "صفقة وسيط" : "Escrow deal")}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              {isRtl ? "رقم الصفقة:" : "Deal ID:"} {deal.id} · {deal.createdAt}
+              {isRtl ? "رقم الصفقة:" : "Deal:"}{" "}
+              <span className="font-mono text-xs" dir="ltr">
+                {deal.id.slice(-10)}
+              </span>
+              {" · "}
+              {role === "buyer" ? (isRtl ? "أنت المشتري" : "You are buyer") : isRtl ? "أنت البائع" : "You are seller"}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Progress Steps */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h2 className="font-bold text-gray-900 mb-4">
-          {isRtl ? "مراحل الصفقة" : "Deal Progress"}
-        </h2>
-        <div className="flex items-center justify-between gap-2">
-          {steps.map((step, i) => {
-            const done = i <= currentStepIndex
-            return (
-              <div key={step.key} className="flex-1 flex flex-col items-center">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
-                    done ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-400"
-                  }`}
-                >
-                  {done ? <CheckCircle size={18} /> : i + 1}
-                </div>
-                <span className={`text-xs mt-2 text-center ${done ? "text-emerald-700 font-medium" : "text-gray-400"}`}>
-                  {isRtl ? step.labelAr : step.labelEn}
-                </span>
-              </div>
-            )
-          })}
+        {/* Steps */}
+        <div className="mt-6 grid grid-cols-4 gap-2">
+          {steps.map((s, i) => (
+            <div
+              key={s.key}
+              className={`text-center rounded-xl py-2 px-1 text-[11px] sm:text-xs font-medium ${
+                i <= activeIndex
+                  ? "bg-emerald-50 text-emerald-800"
+                  : "bg-gray-50 text-gray-400"
+              }`}
+            >
+              {isRtl ? s.labelAr : s.labelEn}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Financial Breakdown - Protected Commission */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h2 className="font-bold text-gray-900 mb-4">
-          {isRtl ? "التفاصيل المالية (محمية)" : "Financial Breakdown (Protected)"}
-        </h2>
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">{isRtl ? "قيمة الصفقة" : "Deal Amount"}</span>
-            <span className="font-medium">{deal.amount.toLocaleString()} {isRtl ? "جنيه" : "EGP"}</span>
+      {/* Amounts */}
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border p-4">
+          <div className="text-xs text-gray-500">{isRtl ? "قيمة السلعة" : "Item price"}</div>
+          <div className="text-xl font-bold mt-1">{Number(deal.amount).toLocaleString()} ج</div>
+        </div>
+        <div className="bg-white rounded-2xl border p-4">
+          <div className="text-xs text-gray-500">{isRtl ? "يدفعه المشتري" : "Buyer pays"}</div>
+          <div className="text-xl font-bold mt-1 text-emerald-700">
+            {Number(deal.totalHeld).toLocaleString()} ج
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">{isRtl ? "عمولة البائع (2.5%)" : "Seller Commission (2.5%)"}</span>
-            <span className="text-red-600">-{commission.sellerCommission.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">{isRtl ? "عمولة المشتري (2.5%)" : "Buyer Commission (2.5%)"}</span>
-            <span className="text-red-600">-{commission.buyerCommission.toLocaleString()}</span>
-          </div>
-          <div className="border-t border-gray-100 pt-3 flex justify-between font-bold">
-            <span>{isRtl ? "إجمالي عمولة قريب" : "Total Areep Fee"}</span>
-            <span className="text-emerald-700">{commission.platformFee.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg">
-            <span>{isRtl ? "البائع يستلم" : "Seller Receives"}</span>
-            <span className="text-emerald-700">{commission.sellerReceives.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-gray-500">
-            <span>{isRtl ? "المشتري يدفع إجمالي" : "Buyer Pays Total"}</span>
-            <span>{commission.buyerPaysTotal.toLocaleString()}</span>
+          <div className="text-[11px] text-gray-400 mt-1">
+            {isRtl ? "شامل عمولة المشتري" : "incl. buyer fee"} ({Number(deal.buyerCommission).toLocaleString()})
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-3">
-          {commission.breakdown.details}
+        <div className="bg-white rounded-2xl border p-4">
+          <div className="text-xs text-gray-500">{isRtl ? "يستلمه البائع" : "Seller receives"}</div>
+          <div className="text-xl font-bold mt-1">
+            {(Number(deal.amount) - Number(deal.sellerCommission)).toLocaleString()} ج
+          </div>
+          <div className="text-[11px] text-gray-400 mt-1">
+            {isRtl ? "بعد خصم" : "after"} {Number(deal.sellerCommission).toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {deal.notes && (
+        <p className="text-sm text-gray-600 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+          {deal.notes}
         </p>
-      </div>
+      )}
+
+      {msg && (
+        <p className="text-sm text-emerald-800 bg-white border rounded-xl px-4 py-3">{msg}</p>
+      )}
 
       {/* Actions */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-        <h2 className="font-bold text-gray-900">
-          {isRtl ? "الإجراءات" : "Actions"}
-        </h2>
+      <div className="bg-white rounded-2xl border p-5 space-y-3">
+        <h2 className="font-semibold">{isRtl ? "الإجراءات" : "Actions"}</h2>
 
-        {status === "PENDING" && deal.role === "buyer" && (
+        {status === "PENDING_PAYMENT" && role === "buyer" && (
           <button
-            onClick={() => handleAction("pay")}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl transition disabled:opacity-60"
+            type="button"
+            disabled={busy}
+            onClick={() => act("pay")}
+            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <CreditCard size={20} />
-            {loading ? (isRtl ? "جاري التحويل..." : "Processing...") : isRtl ? "ادفع الآن عبر Paymob" : "Pay now via Paymob"}
+            {busy ? <Loader2 className="animate-spin" size={18} /> : <CreditCard size={18} />}
+            {isRtl ? "ادفع الآن عبر Paymob" : "Pay with Paymob"}
           </button>
         )}
 
-        {status === "PAID" && deal.role === "seller" && (
+        {status === "PENDING_PAYMENT" && (
           <button
-            onClick={() => handleAction("confirm_delivery")}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition disabled:opacity-60"
+            type="button"
+            disabled={busy}
+            onClick={() => act("cancel")}
+            className="w-full h-11 rounded-xl border text-red-600 font-medium"
           >
-            <Package size={20} />
-            {loading ? (isRtl ? "جاري التأكيد..." : "Confirming...") : isRtl ? "تأكيد تسليم السلعة" : "Confirm Item Delivered"}
+            {isRtl ? "إلغاء الصفقة" : "Cancel deal"}
           </button>
         )}
 
-        {status === "DELIVERED" && deal.role === "buyer" && (
+        {status === "HELD" && role === "seller" && (
           <button
-            onClick={() => handleAction("confirm_receipt")}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl transition disabled:opacity-60"
+            type="button"
+            disabled={busy}
+            onClick={() => act("confirm_delivery")}
+            className="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold inline-flex items-center justify-center gap-2"
           >
-            <CheckCircle size={20} />
-            {loading ? (isRtl ? "جاري التأكيد..." : "Confirming...") : isRtl ? "تأكيد الاستلام وإتمام الصفقة" : "Confirm Receipt & Complete"}
+            {busy ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+            {isRtl ? "تأكيد تسليم السلعة" : "Confirm delivery"}
           </button>
         )}
 
-        {status === "COMPLETED" && (
-          <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 rounded-xl p-4">
-            <CheckCircle size={22} />
-            <span className="font-medium">
-              {isRtl ? "تم إتمام الصفقة وتحويل المبلغ للبائع بنجاح" : "Deal completed and money released to seller"}
-            </span>
+        {(status === "HELD" || status === "DELIVERED") && role === "buyer" && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act("confirm_receipt")}
+            className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold inline-flex items-center justify-center gap-2"
+          >
+            {busy ? <Loader2 className="animate-spin" size={18} /> : <Wallet size={18} />}
+            {isRtl ? "تأكيد الاستلام وتحرير المبلغ للبائع" : "Confirm receipt & release funds"}
+          </button>
+        )}
+
+        {["HELD", "DELIVERED"].includes(status) && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act("dispute")}
+            className="w-full h-11 rounded-xl border border-amber-200 text-amber-800 font-medium inline-flex items-center justify-center gap-2"
+          >
+            <AlertTriangle size={16} />
+            {isRtl ? "فتح نزاع" : "Open dispute"}
+          </button>
+        )}
+
+        {status === "RELEASED" && (
+          <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 rounded-xl p-4 text-sm">
+            <CheckCircle size={18} />
+            {isRtl
+              ? "الصفقة مكتملة. تم احتساب عمولة قريب وتحرير صافي المبلغ للبائع (التحويل البنكي يتم عبر تسوية Paymob/التشغيل)."
+              : "Deal complete. Platform fee taken; net amount marked for seller release."}
           </div>
         )}
 
-        <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg p-3">
-          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-          <span>
+        {status === "HELD" && role === "buyer" && (
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <Clock size={12} />
             {isRtl
-              ? "العمولة تُحسب تلقائياً ولا يمكن تجاوزها. في حالة النزاع يتم تجميد المبلغ حتى الحل."
-              : "Commission is calculated automatically and cannot be bypassed. In case of dispute, funds are held until resolution."}
-          </span>
-        </div>
+              ? "المبلغ محجوز. بعد استلام السلعة اضغط تأكيد الاستلام."
+              : "Funds held. Confirm receipt after you get the item."}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -1,84 +1,140 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getSession } from "@/lib/session"
+import { resolveDbUserId } from "@/lib/packages"
+import { calculateCommission } from "@/lib/commission"
 import { prisma } from "@/lib/prisma"
 
-/**
- * POST /api/escrow
- * body: { adId, buyerId, amount }
- * Creates a PENDING escrow deal record (payment gateway integration next).
- */
-export async function POST(req: NextRequest) {
+const db = prisma as any
+
+/** GET — صفقات الوسيط للمستخدم الحالي */
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ items: [] })
+
   try {
-    const body = await req.json()
-    const { adId, buyerId, amount } = body
-    if (!adId || !buyerId || amount == null) {
-      return NextResponse.json({ error: "adId, buyerId, amount required" }, { status: 400 })
-    }
+    const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
+    const items = await db.escrowDeal.findMany({
+      where: { OR: [{ buyerId: userId }, { sellerId: userId }] },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })
 
-    const ad = await prisma.ad.findUnique({ where: { id: adId } })
-    if (!ad || ad.status !== "ACTIVE") {
-      return NextResponse.json({ error: "Ad not available" }, { status: 404 })
-    }
-    if (!ad.allowEscrow) {
-      return NextResponse.json({ error: "Escrow not enabled on this ad" }, { status: 400 })
-    }
-
-    // Commission rates: 2.5% each side for cars/real-estate escrow
-    const value = Number(amount)
-    const sellerFee = Math.round(value * 0.025 * 100) / 100
-    const buyerFee = Math.round(value * 0.025 * 100) / 100
-    const totalHold = value + buyerFee
-
-    // Prefer EscrowDeal model if exists; otherwise store as JSON on a generic table
-    // Using raw approach via prisma if model present
-    let deal: any = null
-    try {
-      // @ts-expect-error dynamic model
-      if (prisma.escrowDeal?.create) {
-        // @ts-expect-error
-        deal = await prisma.escrowDeal.create({
-          data: {
-            adId,
-            sellerId: ad.userId,
-            buyerId,
-            amount: value,
-            sellerCommission: sellerFee,
-            buyerCommission: buyerFee,
-            totalHeld: totalHold,
-            status: "PENDING_PAYMENT",
-          },
+    // enrich with ad titles
+    const adIds = [...new Set(items.map((i: any) => i.adId))]
+    const ads = adIds.length
+      ? await db.ad.findMany({
+          where: { id: { in: adIds } },
+          select: { id: true, titleAr: true, titleEn: true, images: true, price: true },
         })
-      }
-    } catch {
-      // model may not exist yet
-    }
+      : []
+    const adMap = Object.fromEntries(ads.map((a: any) => [a.id, a]))
 
     return NextResponse.json({
-      ok: true,
-      message: "Escrow initiated — complete payment to hold funds",
-      calculation: {
-        dealValue: value,
-        sellerCommission: sellerFee,
-        buyerCommission: buyerFee,
-        totalToPayByBuyer: totalHold,
-        status: "PENDING_PAYMENT",
-      },
-      deal,
+      success: true,
+      items: items.map((e: any) => ({
+        ...e,
+        amount: Number(e.amount),
+        sellerCommission: Number(e.sellerCommission),
+        buyerCommission: Number(e.buyerCommission),
+        totalHeld: Number(e.totalHeld),
+        ad: adMap[e.adId] || null,
+        role: e.buyerId === userId ? "buyer" : "seller",
+      })),
     })
   } catch (e: any) {
-    console.error(e)
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 })
+    return NextResponse.json({ items: [], error: e?.message })
   }
 }
 
-export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    policy: "/escrow",
-    rates: {
-      carsEscrow: { seller: "2.5%", buyer: "2.5%" },
-      carsNoEscrow: { seller: "2%", buyer: "0%" },
-      realEstateSaleEscrow: { seller: "2.5%", buyer: "2.5%" },
-      realEstateRent: { landlord: "0.5 month", tenant: "0.5 month" },
-    },
-  })
+/** POST — بدء صفقة وسيط على إعلان */
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "سجّل دخول أولاً" }, { status: 401 })
+    }
+
+    const body = await req.json().catch(() => ({}))
+    const adId = String(body.adId || "")
+    if (!adId) {
+      return NextResponse.json({ error: "adId مطلوب" }, { status: 400 })
+    }
+
+    const buyerId = await resolveDbUserId({ id: session.id, phone: session.phone })
+    const ad = await db.ad.findUnique({
+      where: { id: adId },
+      include: { category: true, user: { select: { id: true, name: true, phone: true } } },
+    })
+    if (!ad || ad.status !== "ACTIVE") {
+      return NextResponse.json({ error: "الإعلان غير متاح" }, { status: 404 })
+    }
+    if (!ad.allowEscrow) {
+      return NextResponse.json(
+        { error: "البائع لم يفعّل وسيط قريب على هذا الإعلان" },
+        { status: 400 }
+      )
+    }
+    if (ad.userId === buyerId) {
+      return NextResponse.json({ error: "لا يمكن شراء إعلانك" }, { status: 400 })
+    }
+
+    // existing open deal?
+    const existing = await db.escrowDeal.findFirst({
+      where: {
+        adId,
+        buyerId,
+        status: { in: ["PENDING_PAYMENT", "HELD", "DELIVERED"] },
+      },
+    })
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        deal: existing,
+        alreadyExists: true,
+        message: "لديك صفقة مفتوحة على هذا الإعلان",
+      })
+    }
+
+    const price = Number(ad.price)
+    const commission = calculateCommission({
+      price,
+      categorySlug: ad.category?.slug,
+      commissionType: ad.category?.commissionType,
+      useEscrow: true,
+    })
+
+    const deal = await db.escrowDeal.create({
+      data: {
+        adId,
+        sellerId: ad.userId,
+        buyerId,
+        amount: price,
+        sellerCommission: commission.sellerAmount,
+        buyerCommission: commission.buyerAmount,
+        totalHeld: commission.buyerPaysTotal,
+        status: "PENDING_PAYMENT",
+        notes: commission.noteAr,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      deal: {
+        ...deal,
+        amount: Number(deal.amount),
+        sellerCommission: Number(deal.sellerCommission),
+        buyerCommission: Number(deal.buyerCommission),
+        totalHeld: Number(deal.totalHeld),
+      },
+      commission,
+      ad: {
+        id: ad.id,
+        titleAr: ad.titleAr,
+        titleEn: ad.titleEn,
+      },
+    })
+  } catch (e: any) {
+    console.error("escrow POST", e)
+    return NextResponse.json({ error: e?.message || "فشل إنشاء الصفقة" }, { status: 500 })
+  }
 }

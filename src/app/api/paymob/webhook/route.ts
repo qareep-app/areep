@@ -20,10 +20,14 @@ async function handleSuccess(specialRef: string) {
   }
 
   if (specialRef.startsWith("escrow_")) {
-    const id = specialRef.split("_")[1]
+    // format: escrow_{dealId}_{timestamp}
+    const id = specialRef.slice("escrow_".length).split("_")[0]
     if (id && id !== "x") {
       await db.escrowDeal
-        .updateMany({ where: { id }, data: { status: "HELD" } })
+        .updateMany({
+          where: { OR: [{ id }, { paymobOrderId: specialRef }] },
+          data: { status: "HELD", paymobOrderId: specialRef },
+        })
         .catch(() => {})
     }
   }

@@ -37,7 +37,7 @@ export default function RealtimeChat({
     const q = lastSince.current
       ? `?conversationId=${conversationId}&since=${encodeURIComponent(lastSince.current)}`
       : `?conversationId=${conversationId}`
-    const res = await fetch(`/api/messages${q}`)
+    const res = await fetch(`/api/messages${q}`, { credentials: "include" })
     const data = await res.json()
     if (data.messages?.length) {
       setMessages((prev) => {
@@ -98,6 +98,7 @@ export default function RealtimeChat({
     setError("")
     const res = await fetch("/api/messages", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversationId: conversationId || undefined, adId, text }),
     })

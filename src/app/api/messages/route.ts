@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
+import { resolveDbUserId } from "@/lib/packages"
 import { publishRealtime } from "@/lib/realtime"
 
 const db = prisma as any
@@ -11,17 +12,14 @@ const BLOCKED =
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
+    if (!session?.id) {
+      return NextResponse.json({ error: "login", conversations: [], messages: [] }, { status: 401 })
+    }
+    const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
     const { searchParams } = new URL(req.url)
     const conversationId = searchParams.get("conversationId")
 
-    let userId = session?.id
-    if (!userId) {
-      const u = await db.user.findFirst({ where: { phone: "01000000000" } })
-      userId = u?.id
-    }
-
     if (!conversationId) {
-      if (!userId) return NextResponse.json({ conversations: [] })
       const conversations = await db.conversation.findMany({
         where: { OR: [{ buyerId: userId }, { sellerId: userId }] },
         include: {
@@ -31,7 +29,13 @@ export async function GET(req: NextRequest) {
         orderBy: { lastMessageAt: "desc" },
         take: 40,
       })
-      return NextResponse.json({ conversations })
+      return NextResponse.json({ conversations, userId })
+    }
+
+    // ensure participant
+    const conv = await db.conversation.findUnique({ where: { id: conversationId } })
+    if (!conv || (conv.buyerId !== userId && conv.sellerId !== userId)) {
+      return NextResponse.json({ error: "forbidden", messages: [] }, { status: 403 })
     }
 
     const since = searchParams.get("since")
@@ -43,7 +47,7 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "asc" },
       take: 200,
     })
-    return NextResponse.json({ messages })
+    return NextResponse.json({ messages, userId })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message }, { status: 500 })
   }
@@ -52,27 +56,24 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
+    if (!session?.id) {
+      return NextResponse.json({ error: "سجّل دخول أولاً" }, { status: 401 })
+    }
+    const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
     const body = await req.json()
     const { conversationId, adId, text } = body
 
-    if (!text || BLOCKED.test(String(text))) {
+    if (!text || !String(text).trim()) {
+      return NextResponse.json({ error: "اكتب رسالة" }, { status: 400 })
+    }
+    if (BLOCKED.test(String(text))) {
       return NextResponse.json(
         { error: "الرسالة مرفوضة — ممنوع أرقام أو روابط خارجية" },
         { status: 400 }
       )
     }
 
-    let userId = session?.id
-    if (!userId) {
-      const u = await db.user.upsert({
-        where: { phone: "01000000000" },
-        update: {},
-        create: { phone: "01000000000", name: "مستخدم تجريبي", role: "USER" },
-      })
-      userId = u.id
-    }
-
-    let convId = conversationId
+    let convId = conversationId as string | undefined
     let receiverId: string | null = null
 
     if (!convId) {
@@ -81,10 +82,19 @@ export async function POST(req: NextRequest) {
       }
       const ad = await db.ad.findUnique({ where: { id: adId } })
       if (!ad) return NextResponse.json({ error: "ad not found" }, { status: 404 })
+      if (ad.userId === userId) {
+        return NextResponse.json({ error: "لا يمكن مراسلة إعلانك" }, { status: 400 })
+      }
       receiverId = ad.userId
 
       const existing = await db.conversation.findFirst({
-        where: { adId, buyerId: userId },
+        where: {
+          adId,
+          OR: [
+            { buyerId: userId, sellerId: ad.userId },
+            { buyerId: ad.userId, sellerId: userId },
+          ],
+        },
       })
       if (existing) {
         convId = existing.id
@@ -102,6 +112,9 @@ export async function POST(req: NextRequest) {
     } else {
       const conv = await db.conversation.findUnique({ where: { id: convId } })
       if (!conv) return NextResponse.json({ error: "conversation not found" }, { status: 404 })
+      if (conv.buyerId !== userId && conv.sellerId !== userId) {
+        return NextResponse.json({ error: "forbidden" }, { status: 403 })
+      }
       receiverId = conv.buyerId === userId ? conv.sellerId : conv.buyerId
     }
 
@@ -119,7 +132,9 @@ export async function POST(req: NextRequest) {
       data: { lastMessageAt: new Date() },
     })
 
-    await publishRealtime(`conversation-${convId}`, "new-message", msg)
+    try {
+      await publishRealtime(`conversation-${convId}`, "new-message", msg)
+    } catch {}
 
     return NextResponse.json({ ok: true, message: msg, conversationId: convId })
   } catch (e: any) {

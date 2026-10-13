@@ -7,23 +7,25 @@ import CategoryBar from "@/components/CategoryBar"
 import RealtimeChat from "@/components/chat/RealtimeChat"
 import Link from "next/link"
 import { MessageCircle } from "lucide-react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 
 export default function MessagesPage() {
   const params = useParams()
   const locale = (params?.locale as string) || "ar"
   const isRtl = locale === "ar"
+  const searchParams = useSearchParams()
+  const adFromUrl = searchParams.get("ad") || ""
   const [conversations, setConversations] = useState<any[]>([])
   const [active, setActive] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => {
         if (d.user?.id) setUserId(d.user.id)
       })
-    fetch("/api/messages")
+    fetch("/api/messages", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setConversations(d.conversations || []))
       .catch(() => {})
@@ -68,7 +70,8 @@ export default function MessagesPage() {
           </div>
           <div>
             {active ? (
-              <RealtimeChat locale={locale} conversationId={active} currentUserId={userId} />
+              <RealtimeChat
+            adId={adFromUrl || undefined} locale={locale} conversationId={active} currentUserId={userId} />
             ) : (
               <div className="h-[420px] flex items-center justify-center bg-white dark:bg-gray-900 rounded-2xl border text-gray-400 text-sm">
                 {isRtl ? "اختَر محادثة" : "Select a conversation"}

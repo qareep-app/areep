@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
+import { resolveDbUserId } from "@/lib/packages"
+import { requireAdminSession } from "@/lib/admin"
 
 const db = prisma as any
 
@@ -17,35 +19,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "بيانات ناقصة" }, { status: 400 })
     }
 
-    let user = session?.id
-      ? await db.user.findUnique({ where: { id: session.id } })
-      : await db.user.findUnique({ where: { phone } })
+    const userId = session
+      ? await resolveDbUserId({ id: session.id, phone: session.phone || phone })
+      : (
+          await db.user.upsert({
+            where: { phone },
+            update: {},
+            create: { phone, name: body.fullName, role: "USER" },
+          })
+        ).id
 
-    if (!user) {
-      user = await db.user.create({
-        data: {
-          phone,
-          email: body.email || null,
-          name: body.fullName,
-          role: "SELLER_PENDING",
-          sellerStatus: "PENDING",
-        },
-      })
-    } else {
-      await db.user.update({
-        where: { id: user.id },
-        data: {
-          name: body.fullName,
-          email: body.email || user.email,
-          role: "SELLER_PENDING",
-          sellerStatus: "PENDING",
-        },
-      })
-    }
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        name: body.fullName,
+        email: body.email || undefined,
+        role: "SELLER_PENDING",
+        sellerStatus: "PENDING",
+        bankName: body.bankName || undefined,
+        bankAccountName: body.bankAccountName || undefined,
+        bankAccountNumber: body.bankAccountNumber || undefined,
+        bankIban: body.bankIban || undefined,
+        walletType: body.walletType || undefined,
+        walletNumber: body.walletNumber || undefined,
+      },
+    })
 
     const app = await db.sellerApplication.create({
       data: {
-        userId: user.id,
+        userId,
         email: body.email || null,
         phone,
         fullName: body.fullName,
@@ -62,6 +64,12 @@ export async function POST(req: NextRequest) {
         addressDetail: body.addressDetail || null,
         addressExtra: body.addressExtra || null,
         addressCity: body.addressCity || null,
+        bankName: body.bankName || null,
+        bankAccountName: body.bankAccountName || null,
+        bankAccountNumber: body.bankAccountNumber || null,
+        bankIban: body.bankIban || null,
+        walletType: body.walletType || null,
+        walletNumber: body.walletNumber || null,
         status: "PENDING",
       },
     })
@@ -74,8 +82,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getSession()
-  if (!session || session.role !== "ADMIN") {
+  if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const status = new URL(req.url).searchParams.get("status") || "PENDING"
@@ -88,8 +95,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await getSession()
-  if (!session || session.role !== "ADMIN") {
+  if (!(await requireAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const body = await req.json()
@@ -125,6 +131,12 @@ export async function PATCH(req: NextRequest) {
         addressCity: app.addressCity,
         maxOrderValue: maxOrder,
         isVerified: true,
+        bankName: app.bankName || undefined,
+        bankAccountName: app.bankAccountName || undefined,
+        bankAccountNumber: app.bankAccountNumber || undefined,
+        bankIban: app.bankIban || undefined,
+        walletType: app.walletType || undefined,
+        walletNumber: app.walletNumber || undefined,
       },
     })
   } else {

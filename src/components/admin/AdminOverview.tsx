@@ -133,7 +133,7 @@ export default function AdminOverview({ locale }: Props) {
     {
       href: `/${locale}/admin/sellers?status=PENDING`,
       title: isRtl ? "طلبات تسجيل بائع" : "Seller applications",
-      desc: isRtl ? `${s.sellerAppsPending ?? s.sellerApps || 0} طلب بانتظار المراجعة` : "Pending applications",
+      desc: isRtl ? `${(s.sellerAppsPending ?? s.sellerApps ?? 0)} طلب بانتظار المراجعة` : "Pending applications",
       icon: FileCheck,
     },
   ]

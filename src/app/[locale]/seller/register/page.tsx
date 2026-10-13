@@ -38,8 +38,14 @@ export default function SellerRegisterPage() {
   const [addressDetail, setAddressDetail] = useState("")
   const [addressExtra, setAddressExtra] = useState("")
   const [addressCity, setAddressCity] = useState("")
+  const [bankName, setBankName] = useState("")
+  const [bankAccountName, setBankAccountName] = useState("")
+  const [bankAccountNumber, setBankAccountNumber] = useState("")
+  const [bankIban, setBankIban] = useState("")
+  const [walletType, setWalletType] = useState("")
+  const [walletNumber, setWalletNumber] = useState("")
 
-  const total = 7
+  const total = 8
 
   const sendEmailOtp = async () => {
     setError("")
@@ -86,6 +92,12 @@ export default function SellerRegisterPage() {
           addressDetail,
           addressExtra,
           addressCity,
+          bankName,
+          bankAccountName,
+          bankAccountNumber,
+          bankIban,
+          walletType,
+          walletNumber,
         }),
       })
       const data = await res.json()
@@ -341,6 +353,75 @@ export default function SellerRegisterPage() {
           )}
 
           {step === 7 && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                بيانات استلام مستحقات وسيط قريب (اختيارية الآن — يُفضّل إكمالها)
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm">اسم البنك</label>
+                  <input
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border mt-1"
+                    placeholder="مثال: البنك الأهلي"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm">اسم صاحب الحساب</label>
+                  <input
+                    value={bankAccountName}
+                    onChange={(e) => setBankAccountName(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm">رقم الحساب</label>
+                  <input
+                    value={bankAccountNumber}
+                    onChange={(e) => setBankAccountNumber(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border mt-1 font-mono"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm">IBAN (اختياري)</label>
+                  <input
+                    value={bankIban}
+                    onChange={(e) => setBankIban(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border mt-1 font-mono"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm">محفظة</label>
+                  <select
+                    value={walletType}
+                    onChange={(e) => setWalletType(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border mt-1"
+                  >
+                    <option value="">— لا يوجد —</option>
+                    <option value="vodafone">Vodafone Cash</option>
+                    <option value="instapay">InstaPay</option>
+                    <option value="etisalat">Etisalat Cash</option>
+                    <option value="orange">Orange Cash</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm">رقم المحفظة</label>
+                  <input
+                    value={walletNumber}
+                    onChange={(e) => setWalletNumber(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border mt-1 font-mono"
+                    dir="ltr"
+                    placeholder="01xxxxxxxxx"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 8 && (
             <div className="bg-stone-50 rounded-xl p-4 text-sm space-y-1">
               <div>الاسم: {fullName}</div>
               <div>البريد: {email}</div>
@@ -352,6 +433,12 @@ export default function SellerRegisterPage() {
                 العنوان: {addressDetail}
                 {addressCity ? `، ${addressCity}` : ""}
               </div>
+              {(bankAccountNumber || walletNumber) && (
+                <div className="pt-1 text-emerald-800">
+                  استلام: {bankName || walletType || "—"}{" "}
+                  {bankAccountNumber || walletNumber || ""}
+                </div>
+              )}
               <p className="text-xs text-gray-500 pt-2">
                 بالضغط على «إرسال الطلب» هيتعمل حسابك وهيتبعت طلب بائع لمراجعة فريق قريب.
               </p>

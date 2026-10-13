@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
   }
   const status = new URL(req.url).searchParams.get("status") || "PENDING"
   const list = await db.sellerApplication.findMany({
-    where: { status },
+    where: status === "all" ? {} : { status },
     orderBy: { createdAt: "desc" },
     take: 50,
   })

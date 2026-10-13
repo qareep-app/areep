@@ -82,11 +82,38 @@ export default function AdminSellers({ locale }: { locale: string }) {
         {rows.map((r) => (
           <div key={r.id} className="p-4 text-sm space-y-2">
             <div className="font-semibold">
-              {r.businessName || r.fullName || r.phone} —{" "}
-              <span className="text-gray-500 font-normal">{r.status}</span>
+              {r.shopName || r.businessName || r.fullName || r.phone} —{" "}
+              <span
+                className={
+                  r.status === "PENDING"
+                    ? "text-amber-600 font-normal"
+                    : r.status === "APPROVED"
+                      ? "text-emerald-600 font-normal"
+                      : "text-gray-500 font-normal"
+                }
+              >
+                {r.status}
+              </span>
             </div>
-            <div className="text-gray-500" dir="ltr">
-              {r.phone} · {r.businessType}
+            <div className="text-gray-600 text-xs space-y-0.5">
+              <div>{isRtl ? "الاسم:" : "Name:"} {r.fullName || "—"}</div>
+              <div dir="ltr">{r.phone} · {r.email || ""}</div>
+              <div>
+                {isRtl ? "النشاط:" : "Type:"} {r.businessType || "—"} ·{" "}
+                {isRtl ? "توثيق:" : "Verify:"} {r.verifyLevel || "—"}
+              </div>
+              {(r.addressCity || r.addressDetail) && (
+                <div>
+                  {isRtl ? "العنوان:" : "Address:"} {r.addressDetail || ""}{" "}
+                  {r.addressCity || ""}
+                </div>
+              )}
+              {(r.bankAccountNumber || r.walletNumber) && (
+                <div className="text-emerald-800 bg-emerald-50 rounded-lg px-2 py-1 mt-1 font-mono" dir="ltr">
+                  {r.bankName || r.walletType || "payout"} / {r.bankAccountName || ""}{" "}
+                  {r.bankAccountNumber || r.walletNumber}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">

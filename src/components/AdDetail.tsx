@@ -89,7 +89,7 @@ export default function AdDetail({ locale, adId }: AdDetailProps) {
         </div>
 
         <Link
-          href={`/${locale}/messages`}
+          href={`/${locale}/messages?ad=${ad.id}`}
           className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl transition"
         >
           <MessageCircle size={18} />

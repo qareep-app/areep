@@ -277,7 +277,7 @@ export default async function AdDetailPage({ params }: Props) {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Link
-                    href={`/${locale}/chat?ad=${ad.id}&mode=direct`}
+                    href={`/${locale}/messages?ad=${ad.id}`}
                     className="inline-flex items-center justify-center flex-1 px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition text-center"
                   >
                     {isRtl ? "شراء عادي (شات مع البائع)" : "Normal buy (chat seller)"}

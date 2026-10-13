@@ -18,7 +18,7 @@ export default function AdminOverview({ locale }: Props) {
   const [busy, setBusy] = useState<string | null>(null)
 
   const load = () => {
-    fetch("/api/admin/stats")
+    fetch("/api/admin/stats", { credentials: "include" })
       .then(async (r) => {
         const j = await r.json()
         if (!r.ok) throw new Error(j.error || "Unauthorized")
@@ -133,7 +133,7 @@ export default function AdminOverview({ locale }: Props) {
     {
       href: `/${locale}/admin/sellers?status=PENDING`,
       title: isRtl ? "طلبات تسجيل بائع" : "Seller applications",
-      desc: isRtl ? `${s.sellerApps || 0} طلب بانتظار المراجعة` : "Pending applications",
+      desc: isRtl ? `${s.sellerAppsPending ?? s.sellerApps || 0} طلب بانتظار المراجعة` : "Pending applications",
       icon: FileCheck,
     },
   ]

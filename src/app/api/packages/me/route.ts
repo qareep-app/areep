@@ -10,6 +10,27 @@ export async function GET() {
 
   try {
     const userId = await resolveDbUserId({ id: session.id, phone: session.phone })
+
+    // Auto re-link ads that belong to same phone under other user rows
+    try {
+      const { prisma } = await import("@/lib/prisma")
+      const db = prisma as any
+      if (session.phone) {
+        const twins = await db.user.findMany({
+          where: { phone: session.phone, id: { not: userId } },
+          select: { id: true },
+        })
+        for (const t of twins) {
+          await db.ad.updateMany({ where: { userId: t.id }, data: { userId } })
+        }
+        if (session.id !== userId) {
+          await db.ad.updateMany({ where: { userId: session.id }, data: { userId } })
+        }
+      }
+    } catch (e) {
+      console.warn("packages/me auto-reconcile", e)
+    }
+
     const q = await getQuotaSnapshot(userId, session.phone)
     const meta = PACKAGE_META[q.slug] || PACKAGE_META.free
 

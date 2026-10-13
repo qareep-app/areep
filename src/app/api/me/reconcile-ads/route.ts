@@ -59,24 +59,18 @@ async function reconcile() {
       console.warn("reconcile twins", e)
     }
 
-    const adsNow = await db.ad
-      .count({
-        where: {
-          userId,
-          status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
-        },
-      })
+    let adsNow = await db.ad.count({ where: { userId } }).catch(() => 0)
+    let featuredNow = await db.ad
+      .count({ where: { userId, isFeatured: true } })
       .catch(() => 0)
-
-    const featuredNow = await db.ad
-      .count({
-        where: {
-          userId,
-          status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
-          isFeatured: true,
-        },
+    // list ids for debug
+    const adRows = await db.ad
+      .findMany({
+        where: { userId },
+        select: { id: true, status: true, isFeatured: true, titleAr: true },
+        take: 10,
       })
-      .catch(() => 0)
+      .catch(() => [])
 
     // حدّث عدّاد الباقة
     try {
@@ -93,6 +87,7 @@ async function reconcile() {
       adsNow,
       featuredNow,
       phone: session.phone,
+      adRows,
     })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message }, { status: 500 })

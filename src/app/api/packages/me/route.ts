@@ -34,6 +34,13 @@ export async function GET() {
     const q = await getQuotaSnapshot(userId, session.phone)
     const meta = PACKAGE_META[q.slug] || PACKAGE_META.free
 
+    // raw verify
+    let rawCount = 0
+    try {
+      const { prisma } = await import("@/lib/prisma")
+      rawCount = await (prisma as any).ad.count({ where: { userId } })
+    } catch {}
+
     return NextResponse.json({
       ok: true,
       quota: {
@@ -48,6 +55,7 @@ export async function GET() {
         featuredRemaining: q.featuredRemaining,
         endDate: q.endDate,
       },
+      debug: { userId, phone: session.phone, rawCountByUserId: rawCount },
     })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message }, { status: 500 })

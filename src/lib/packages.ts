@@ -199,47 +199,54 @@ export async function getQuotaSnapshot(
   const maxAds = up.package?.maxAds ?? getPackageMeta(up.package?.slug || "free").maxAds
   const featuredAds = up.package?.featuredAds ?? getPackageMeta(up.package?.slug || "free").featuredAds
 
-  // If ads were saved under a different userId (old session), re-link by phone
-  if (phone) {
+  // Count ALL non-deleted-looking ads for this user (status filter was returning 0 in prod)
+  let realAds = 0
+  let realFeatured = 0
+  try {
+    realAds = await db.ad.count({ where: { userId } })
+    // Prefer active-like statuses if any exist
+    const activeOnly = await db.ad.count({
+      where: { userId, status: { in: ["ACTIVE", "PAUSED", "PENDING"] } },
+    })
+    if (activeOnly > 0) realAds = activeOnly
+
+    realFeatured = await db.ad.count({
+      where: { userId, isFeatured: true },
+    })
+    const featuredActive = await db.ad.count({
+      where: {
+        userId,
+        isFeatured: true,
+        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
+      },
+    })
+    if (featuredActive > 0) realFeatured = featuredActive
+  } catch (e) {
+    console.error("getQuotaSnapshot count error", e)
+    realAds = up.adsUsed ?? 0
+    realFeatured = up.featuredUsed ?? 0
+  }
+
+  // phone fallback: count via relation
+  if (realAds === 0 && phone) {
     try {
-      await db.ad.updateMany({
-        where: {
-          userId: { not: userId },
-          user: { phone },
-        },
-        data: { userId },
+      const byPhone = await db.ad.count({ where: { user: { phone } } })
+      if (byPhone > 0) realAds = byPhone
+      const featPhone = await db.ad.count({
+        where: { user: { phone }, isFeatured: true },
       })
-    } catch {
-      /* relation filter may fail on some drivers — ignore */
+      if (featPhone > 0) realFeatured = featPhone
+    } catch (e) {
+      console.error("getQuotaSnapshot phone count", e)
     }
   }
 
-  const whereBase: any = phone
-    ? {
-        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
-        OR: [{ userId }, { user: { phone } }],
-      }
-    : {
-        userId,
-        status: { in: ["ACTIVE", "PAUSED", "PENDING"] },
-      }
-
-  const realAds = await db.ad.count({ where: whereBase }).catch(() => up.adsUsed ?? 0)
-
-  const realFeatured = await db.ad
-    .count({
-      where: { ...whereBase, isFeatured: true },
+  await db.userPackage
+    .update({
+      where: { id: up.id },
+      data: { adsUsed: realAds, featuredUsed: realFeatured },
     })
-    .catch(() => up.featuredUsed ?? 0)
-
-  if (realAds !== (up.adsUsed ?? 0) || realFeatured !== (up.featuredUsed ?? 0)) {
-    await db.userPackage
-      .update({
-        where: { id: up.id },
-        data: { adsUsed: realAds, featuredUsed: realFeatured },
-      })
-      .catch(() => null)
-  }
+    .catch(() => null)
 
   return {
     userPackageId: up.id,

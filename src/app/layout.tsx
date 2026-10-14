@@ -65,7 +65,6 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=5" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=5" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5" />
-        <link rel="preload" as="image" href="/hero-street.jpg" type="image/jpeg" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('areep-theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
@@ -111,15 +110,15 @@ export default function RootLayout({
     else document.documentElement.appendChild(el);
   }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
-  // ~1.4s hold + curtain — أفضل لـ LCP مع الإبقاء على الهوية
+  // ~0.9s hold + curtain سريع — يقلل ضرر Lighthouse مع الإبقاء على الهوية
   setTimeout(function(){
     el.classList.add('open');
     setTimeout(function(){
       el.classList.add('hide');
       try { sessionStorage.setItem('areep_splash_done','1'); } catch(e) {}
-      setTimeout(function(){ try{ el.remove(); }catch(e){} }, 300);
-    }, 550);
-  }, 1400);
+      setTimeout(function(){ try{ el.remove(); }catch(e){} }, 250);
+    }, 400);
+  }, 900);
 })();
 `,
           }}

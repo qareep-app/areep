@@ -50,19 +50,39 @@ export default async function HomePage({ params }: Props) {
       (prisma as any).ad.findMany({
         where: { status: "ACTIVE", isFeatured: true },
         orderBy: [{ featuredUntil: "desc" }, { createdAt: "desc" }],
-        take: 8,
+        take: 6,
         select,
       }),
       (prisma as any).ad.findMany({
         where: { status: "ACTIVE" },
         orderBy: { createdAt: "desc" },
-        take: 20,
+        take: 12,
         select,
       }),
     ])
   } catch (e) {
     console.error("Home ads error:", e)
   }
+
+  /** لا نمرّر data: أو /uploads المكسور — يقلّل حجم HTML وطلبات 404 */
+  const lighten = (list: any[]) =>
+    list.map((a) => {
+      const imgs = Array.isArray(a.images) ? a.images : []
+      const images = imgs
+        .filter(
+          (u: unknown) =>
+            typeof u === "string" &&
+            u.length > 0 &&
+            u.length < 800 &&
+            !u.startsWith("data:") &&
+            !u.startsWith("/uploads")
+        )
+        .slice(0, 2)
+      return { ...a, images }
+    })
+
+  featured = lighten(featured)
+  ads = lighten(ads)
 
   const featuredIds = new Set(featured.map((a) => a.id))
   const rest = ads.filter((a) => !featuredIds.has(a.id))

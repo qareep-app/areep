@@ -15,8 +15,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   serverExternalPackages: ["@prisma/client", "prisma"],
-  // Allow deploy while Prisma client regenerates on Vercel
   typescript: {
     ignoreBuildErrors: true,
   },

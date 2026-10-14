@@ -64,7 +64,8 @@ export default function HomeHero({ locale = "ar" }: HomeHeroProps) {
                 alt={isRtl ? "دكانك قريب" : "Your shop is near"}
                 fill
                 priority
-                sizes="(max-width: 768px) 100vw, 600px"
+                quality={75}
+                sizes="(max-width: 768px) 100vw, 560px"
                 className="object-cover"
               />
             </div>

@@ -65,6 +65,15 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=5" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=5" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5" />
+        {/* Preload LCP hero — يقلل Largest Contentful Paint */}
+        <link
+          rel="preload"
+          as="image"
+          href="/hero-street.jpg"
+          type="image/jpeg"
+          fetchPriority="high"
+        />
+        <link rel="preload" as="image" href="/app-icon.png?v=4" type="image/png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('areep-theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
@@ -74,17 +83,17 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
 #areep-splash{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#0f2337;overflow:hidden}
-#areep-splash .curtain{position:absolute;top:0;bottom:0;width:50%;background:#0f2337;z-index:2;transition:transform 1s cubic-bezier(.65,0,.35,1)}
+#areep-splash .curtain{position:absolute;top:0;bottom:0;width:50%;background:#0f2337;z-index:2;transition:transform .55s cubic-bezier(.65,0,.35,1)}
 #areep-splash .curtain.left{left:0;transform:translateX(0);border-right:1px solid rgba(255,255,255,.06)}
 #areep-splash .curtain.right{right:0;transform:translateX(0);border-left:1px solid rgba(255,255,255,.06)}
 #areep-splash.open .curtain.left{transform:translateX(-105%)}
 #areep-splash.open .curtain.right{transform:translateX(105%)}
-#areep-splash .center{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:12px;transition:opacity .5s ease,transform .5s ease}
+#areep-splash .center{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:12px;transition:opacity .35s ease,transform .35s ease}
 #areep-splash.open .center{opacity:0;transform:scale(.92)}
-#areep-splash img{width:128px;height:128px;border-radius:28px;object-fit:cover;box-shadow:0 16px 48px rgba(0,0,0,.45)}
-#areep-splash .t1{color:#fff;font-size:28px;font-weight:700;font-family:system-ui,sans-serif}
-#areep-splash .t2{color:#fb923c;font-size:14px;font-family:system-ui,sans-serif}
-#areep-splash.hide{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s ease,visibility .3s}
+#areep-splash img{width:112px;height:112px;border-radius:24px;object-fit:cover;box-shadow:0 16px 48px rgba(0,0,0,.45)}
+#areep-splash .t1{color:#fff;font-size:26px;font-weight:700;font-family:system-ui,sans-serif}
+#areep-splash .t2{color:#fb923c;font-size:13px;font-family:system-ui,sans-serif}
+#areep-splash.hide{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility .25s}
 `,
           }}
         />
@@ -101,7 +110,7 @@ export default function RootLayout({
     '<div class="curtain left"></div>' +
     '<div class="curtain right"></div>' +
     '<div class="center">' +
-      '<img src="/app-icon.png?v=4" alt="قريب" width="128" height="128"/>' +
+      '<img src="/app-icon.png?v=4" alt="قريب" width="112" height="112" decoding="async"/>' +
       '<div class="t1">قريب</div>' +
       '<div class="t2">دكانك قريب</div>' +
     '</div>';
@@ -110,15 +119,15 @@ export default function RootLayout({
     else document.documentElement.appendChild(el);
   }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
-  // hold 3s then open curtains
+  // ~1.4s hold + curtain — أفضل لـ LCP مع الإبقاء على الهوية
   setTimeout(function(){
     el.classList.add('open');
     setTimeout(function(){
       el.classList.add('hide');
       try { sessionStorage.setItem('areep_splash_done','1'); } catch(e) {}
-      setTimeout(function(){ try{ el.remove(); }catch(e){} }, 400);
-    }, 1000);
-  }, 3000);
+      setTimeout(function(){ try{ el.remove(); }catch(e){} }, 300);
+    }, 550);
+  }, 1400);
 })();
 `,
           }}

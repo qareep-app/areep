@@ -1,8 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { Pause, Play, Trash2, Pencil, MessageCircle, ExternalLink, RefreshCw } from "lucide-react"
+import {
+  Pause,
+  Play,
+  Trash2,
+  MessageCircle,
+  ExternalLink,
+  RefreshCw,
+  Star,
+} from "lucide-react"
+
+async function fetchWithTimeout(url: string, ms = 12000): Promise<Response> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await fetch(url, { credentials: "include", signal: ctrl.signal })
+  } finally {
+    clearTimeout(t)
+  }
+}
 
 export default function AdminAds({ locale }: { locale: string }) {
   const isRtl = locale === "ar"
@@ -11,21 +29,57 @@ export default function AdminAds({ locale }: { locale: string }) {
   const [error, setError] = useState("")
   const [busy, setBusy] = useState<string | null>(null)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
-      let r = await fetch("/api/admin/ads?limit=80", { credentials: "include" })
-      let d = await r.json().catch(() => ({}))
-      if (!r.ok) {
-        // fallback public list (still show actions if admin session works on PATCH)
-        r = await fetch("/api/ads?limit=50", { credentials: "include" })
-        d = await r.json().catch(() => ({}))
+      let list: any[] = []
+      let lastErr = ""
+
+      try {
+        const r = await fetchWithTimeout("/api/admin/ads?limit=80", 12000)
+        const d = await r.json().catch(() => ({}))
+        if (r.ok) {
+          list = d.ads || d.items || []
+        } else {
+          lastErr = d.error || `admin ${r.status}`
+        }
+      } catch (e: any) {
+        lastErr = e?.name === "AbortError" ? "timeout" : e?.message || "fetch error"
       }
-      const list = d.ads || d.items || []
+
+      // fallback قائمة عامة
+      if (!list.length) {
+        try {
+          const r2 = await fetchWithTimeout("/api/ads?limit=50", 10000)
+          const d2 = await r2.json().catch(() => ({}))
+          if (r2.ok) {
+            list = d2.ads || []
+            if (list.length && lastErr) {
+              // عندنا بيانات من المسار العام
+              lastErr = ""
+            }
+          } else if (!lastErr) {
+            lastErr = d2.error || `ads ${r2.status}`
+          }
+        } catch (e: any) {
+          if (!lastErr) lastErr = e?.message || "fallback error"
+        }
+      }
+
       setRows(Array.isArray(list) ? list : [])
-      if (!r.ok && !list.length) {
-        setError(d.error || (isRtl ? "تعذر تحميل الإعلانات" : "Failed to load ads"))
+      if (lastErr && !(Array.isArray(list) && list.length)) {
+        setError(
+          lastErr === "timeout"
+            ? isRtl
+              ? "انتهت مهلة التحميل — اضغط تحديث"
+              : "Load timed out — retry"
+            : lastErr === "Unauthorized"
+              ? isRtl
+                ? "غير مصرح — تأكد أن رقمك في ADMIN_PHONES"
+                : "Unauthorized — check ADMIN_PHONES"
+              : lastErr
+        )
       }
     } catch (e: any) {
       setError(e?.message || "error")
@@ -33,13 +87,17 @@ export default function AdminAds({ locale }: { locale: string }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isRtl])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
 
-  const act = async (id: string, action: "PAUSE" | "ACTIVATE" | "DELETE" | "FEATURE" | "UNFEATURE") => {
+  const act = async (
+    id: string,
+    action: "PAUSE" | "ACTIVATE" | "DELETE" | "FEATURE" | "UNFEATURE"
+  ) => {
+    if (action === "DELETE" && !confirm(isRtl ? "حذف الإعلان؟" : "Delete ad?")) return
     setBusy(id + action)
     try {
       const r = await fetch("/api/admin/ads", {
@@ -60,9 +118,18 @@ export default function AdminAds({ locale }: { locale: string }) {
 
   if (loading) {
     return (
-      <p className="text-sm text-gray-500 p-4">
-        {isRtl ? "جاري تحميل الإعلانات..." : "Loading ads..."}
-      </p>
+      <div className="p-6 text-center space-y-3">
+        <p className="text-sm text-gray-500">
+          {isRtl ? "جاري تحميل الإعلانات..." : "Loading ads..."}
+        </p>
+        <button
+          type="button"
+          onClick={() => load()}
+          className="text-sm text-emerald-700 underline"
+        >
+          {isRtl ? "إلغاء والضغط للتحديث" : "Retry"}
+        </button>
+      </div>
     )
   }
 
@@ -74,7 +141,7 @@ export default function AdminAds({ locale }: { locale: string }) {
         </p>
         <button
           type="button"
-          onClick={load}
+          onClick={() => load()}
           className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border hover:bg-gray-50"
         >
           <RefreshCw size={14} />
@@ -83,111 +150,128 @@ export default function AdminAds({ locale }: { locale: string }) {
       </div>
 
       {error && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-xl px-4 py-3">
+        <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border divide-y">
-        {rows.length === 0 && (
-          <p className="p-8 text-center text-gray-400 text-sm">
-            {isRtl ? "لا توجد إعلانات" : "No ads"}
-          </p>
-        )}
+      {rows.length === 0 && !error && (
+        <p className="text-center text-gray-400 py-10 text-sm">
+          {isRtl ? "لا توجد إعلانات" : "No ads"}
+        </p>
+      )}
 
+      <div className="bg-white rounded-2xl border divide-y">
         {rows.map((a) => {
-          const img = Array.isArray(a.images) && a.images[0] ? a.images[0] : null
+          const img =
+            Array.isArray(a.images) && a.images[0]
+              ? a.images[0]
+              : typeof a.images === "string"
+                ? a.images
+                : null
           const seller = a.user?.name || a.user?.phone || a.userId || "—"
-          const paused = a.status === "PAUSED"
           return (
-            <div key={a.id} className="p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="w-24 h-20 rounded-xl bg-gray-100 overflow-hidden shrink-0 border">
+            <div
+              key={a.id}
+              className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:items-center"
+            >
+              <div className="flex gap-3 flex-1 min-w-0">
+                <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                      —
+                    </div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-gray-900 text-sm sm:text-base">
-                    {a.titleAr || a.titleEn || "—"}
+                  <div className="font-semibold text-gray-900 truncate flex items-center gap-1">
+                    {a.isFeatured && <Star size={14} className="text-amber-500 shrink-0" />}
+                    {a.titleAr || a.titleEn || a.id}
                   </div>
-                  <div className="text-gray-600 text-sm mt-0.5">
-                    {Number(a.price || 0).toLocaleString()} {a.currency || "EGP"}
-                    {" · "}
-                    {a.city || "—"}
-                    {" · "}
-                    <span className={paused ? "text-amber-700" : "text-emerald-700"}>
-                      {a.status || "—"}
+                  <div className="text-xs text-gray-500 mt-0.5 space-x-1 space-x-reverse">
+                    <span className="text-emerald-700 font-medium">
+                      {a.price != null
+                        ? `${Number(a.price).toLocaleString()} ${a.currency || "EGP"}`
+                        : "—"}
                     </span>
+                    <span>·</span>
+                    <span>{a.status}</span>
+                    {a.category?.nameAr && (
+                      <>
+                        <span>·</span>
+                        <span>{a.category.nameAr}</span>
+                      </>
+                    )}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    <strong>{isRtl ? "المعلن:" : "Seller:"}</strong> {seller}
-                    {a.category?.nameAr ? ` · ${a.category.nameAr}` : ""}
-                    {` · ${a.views || 0} ${isRtl ? "مشاهدة" : "views"}`}
+                  <div className="text-xs text-gray-400 mt-0.5 truncate">
+                    {isRtl ? "المعلن:" : "Seller:"} {seller}
+                    {a.city ? ` · ${a.city}` : ""}
                   </div>
                 </div>
               </div>
 
-              {/* أزرار واضحة دائماً */}
-              <div className="flex flex-wrap gap-2 border-t pt-3">
+              <div className="flex flex-wrap gap-1.5 shrink-0">
                 <Link
                   href={`/${locale}/ads/${a.id}`}
                   target="_blank"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-900 text-white text-xs font-semibold hover:bg-black"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium hover:bg-gray-50"
                 >
-                  <ExternalLink size={14} />
+                  <ExternalLink size={12} />
                   {isRtl ? "عرض" : "View"}
                 </Link>
-
-                <button
-                  type="button"
-                  disabled={!!busy}
-                  onClick={() => act(a.id, paused ? "ACTIVATE" : "PAUSE")}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-xs font-semibold hover:bg-amber-200 disabled:opacity-50"
-                >
-                  {paused ? <Play size={14} /> : <Pause size={14} />}
-                  {paused ? (isRtl ? "تشغيل" : "Activate") : (isRtl ? "إيقاف" : "Pause")}
-                </button>
-
-                <Link
-                  href={`/${locale}/ads/new?edit=${a.id}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-100 text-blue-900 text-xs font-semibold hover:bg-blue-200"
-                >
-                  <Pencil size={14} />
-                  {isRtl ? "تعديل" : "Edit"}
-                </Link>
-
                 <Link
                   href={`/${locale}/messages?user=${a.userId || a.user?.id || ""}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-100 text-emerald-900 text-xs font-semibold hover:bg-emerald-200"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium hover:bg-gray-50"
                 >
-                  <MessageCircle size={14} />
-                  {isRtl ? "تواصل" : "Contact"}
+                  <MessageCircle size={12} />
+                  {isRtl ? "تواصل" : "Chat"}
                 </Link>
-
-
+                {a.status === "ACTIVE" ? (
+                  <button
+                    type="button"
+                    disabled={!!busy}
+                    onClick={() => act(a.id, "PAUSE")}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-800 text-xs font-semibold"
+                  >
+                    <Pause size={12} />
+                    {isRtl ? "إيقاف" : "Pause"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!!busy}
+                    onClick={() => act(a.id, "ACTIVATE")}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold"
+                  >
+                    <Play size={12} />
+                    {isRtl ? "تشغيل" : "Activate"}
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={!!busy}
                   onClick={() => act(a.id, a.isFeatured ? "UNFEATURE" : "FEATURE")}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-100 text-amber-900 text-xs font-semibold hover:bg-amber-200 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-800 text-xs font-semibold"
                 >
-                  {a.isFeatured ? (isRtl ? "إلغاء التمييز" : "Unfeature") : (isRtl ? "تمييز" : "Feature")}
+                  <Star size={12} />
+                  {a.isFeatured
+                    ? isRtl
+                      ? "إلغاء تمييز"
+                      : "Unfeature"
+                    : isRtl
+                      ? "تمييز"
+                      : "Feature"}
                 </button>
                 <button
                   type="button"
                   disabled={!!busy}
-                  onClick={() => {
-                    if (confirm(isRtl ? "حذف الإعلان نهائياً؟" : "Delete this ad?")) {
-                      act(a.id, "DELETE")
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-100 text-red-800 text-xs font-semibold hover:bg-red-200 disabled:opacity-50"
+                  onClick={() => act(a.id, "DELETE")}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-semibold"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={12} />
                   {isRtl ? "حذف" : "Delete"}
                 </button>
               </div>

@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.r2.cloudflarestorage.com" },
       { protocol: "https", hostname: "areep.vercel.app" },
       { protocol: "https", hostname: "**.vercel.app" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
   },
   serverExternalPackages: ["@prisma/client", "prisma"],

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
+import { put } from "@vercel/blob"
 
 export const runtime = "nodejs"
 
 /**
+ * Upload to Vercel Blob when BLOB_READ_WRITE_TOKEN is set.
+ * Falls back to data-URL only in local/dev without token (not for production).
  * Vercel serverless body limit ~4.5MB — keep files small.
- * Images should be compressed on the client first.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +29,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Hard limits under Vercel body size
     const max = isVideo ? 3 * 1024 * 1024 : 1.5 * 1024 * 1024
     if (file.size > max) {
       return NextResponse.json(
@@ -40,25 +41,64 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    // Extra safety: base64 expands ~33%
-    if (buffer.length > 3.2 * 1024 * 1024) {
+    const ext =
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+          ? "webp"
+          : file.type === "video/webm"
+            ? "webm"
+            : file.type === "video/mp4" || file.type === "video/quicktime"
+              ? "mp4"
+              : "jpg"
+
+    const safeName = (file.name || "file")
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .slice(0, 80)
+    const pathname = `areep/${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${safeName}.${ext}`
+
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+
+    if (token) {
+      const blob = await put(pathname, file, {
+        access: "public",
+        token,
+        contentType: file.type === "image/jpg" ? "image/jpeg" : file.type,
+        addRandomSuffix: false,
+      })
+
+      return NextResponse.json({
+        success: true,
+        url: blob.url,
+        pathname: blob.pathname,
+        filename: file.name,
+        kind: isVideo ? "video" : "image",
+        storage: "vercel-blob",
+      })
+    }
+
+    // Dev fallback only — not durable on serverless without Blob
+    if (process.env.NODE_ENV === "production") {
       return NextResponse.json(
-        { error: "الملف كبير على السيرفر — صغّره" },
-        { status: 413 }
+        {
+          error:
+            "BLOB_READ_WRITE_TOKEN غير مضبوط على Vercel — أضف Vercel Blob من لوحة المشروع",
+        },
+        { status: 503 }
       )
     }
 
-    const base64 = buffer.toString("base64")
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
     const mime = file.type === "image/jpg" ? "image/jpeg" : file.type
-    const url = `data:${mime};base64,${base64}`
+    const url = `data:${mime};base64,${buffer.toString("base64")}`
 
     return NextResponse.json({
       success: true,
       url,
       filename: file.name,
       kind: isVideo ? "video" : "image",
+      storage: "data-url-dev",
     })
   } catch (error: any) {
     console.error("Upload error:", error)
@@ -66,6 +106,9 @@ export async function POST(req: NextRequest) {
     if (msg.includes("too large") || msg.includes("413")) {
       return NextResponse.json({ error: "الملف كبير جداً" }, { status: 413 })
     }
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    return NextResponse.json(
+      { error: msg || "Upload failed" },
+      { status: 500 }
+    )
   }
 }

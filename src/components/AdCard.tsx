@@ -64,6 +64,13 @@ export default function AdCard({
 
   const seller = ad.user?.name || (isRtl ? "بائع" : "Seller")
   const location = [ad.city, ad.area].filter(Boolean).join(" · ")
+  // /uploads و الروابط الخارجية: بدون محسّن Next (يتجنب 400 على Vercel)
+  const imgUnoptimized =
+    !img ||
+    img.startsWith("/uploads") ||
+    img.startsWith("http://") ||
+    img.startsWith("https://") ||
+    img.startsWith("blob:")
 
   if (layout === "list") {
     return (
@@ -73,7 +80,14 @@ export default function AdCard({
       >
         <div className="relative w-28 sm:w-36 h-24 sm:h-28 rounded-xl bg-gray-100 overflow-hidden shrink-0">
           {img ? (
-            <Image src={img} alt="" fill sizes="(max-width:768px) 40vw, 200px" className="object-cover" />
+            <Image
+              src={img}
+              alt=""
+              fill
+              sizes="(max-width:768px) 40vw, 200px"
+              className="object-cover"
+              unoptimized={imgUnoptimized}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
           )}
@@ -126,7 +140,14 @@ export default function AdCard({
     >
       <div className="relative aspect-[4/3] bg-gray-100">
         {img ? (
-          <Image src={img} alt="" fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover" />
+          <Image
+            src={img}
+            alt=""
+            fill
+            sizes="(max-width:768px) 100vw, 33vw"
+            className="object-cover"
+            unoptimized={imgUnoptimized}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>
         )}

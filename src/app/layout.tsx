@@ -65,15 +65,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=5" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=5" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5" />
-        {/* Preload LCP hero — يقلل Largest Contentful Paint */}
-        <link
-          rel="preload"
-          as="image"
-          href="/hero-street.jpg"
-          type="image/jpeg"
-          fetchPriority="high"
-        />
-        <link rel="preload" as="image" href="/app-icon.png?v=4" type="image/png" />
+        <link rel="preload" as="image" href="/hero-street.jpg" type="image/jpeg" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('areep-theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,

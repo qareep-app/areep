@@ -71,10 +71,24 @@ export async function PATCH(
     if (typeof body.condition === "string") data.condition = body.condition
     if (Array.isArray(body.images)) {
       data.images = body.images.filter(
-        (u: unknown) => typeof u === "string" && u.length > 0 && !String(u).startsWith("/uploads")
+        (u: unknown) =>
+          typeof u === "string" &&
+          u.length > 0 &&
+          u.length < 2000 &&
+          !String(u).startsWith("/uploads") &&
+          !String(u).startsWith("data:")
       )
     }
-    if (Array.isArray(body.videos)) data.videos = body.videos
+    if (Array.isArray(body.videos)) {
+      data.videos = body.videos.filter(
+        (u: unknown) =>
+          typeof u === "string" &&
+          u.length > 0 &&
+          u.length < 2000 &&
+          !String(u).startsWith("data:") &&
+          !String(u).startsWith("/uploads")
+      )
+    }
     if (body.attributes && typeof body.attributes === "object") {
       data.attributes = body.attributes
     }

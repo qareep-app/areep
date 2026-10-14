@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
-import { assertCanPostAd, recordAdCreated, resolveDbUserId } from "@/lib/packages"
+import {
+  assertCanPostAd,
+  recordAdCreated,
+  featureAdExplicit,
+  resolveDbUserId,
+} from "@/lib/packages"
 
 /**
  * POST /api/ads - Create a new ad (requires login)
@@ -34,6 +39,7 @@ export async function POST(req: NextRequest) {
       images,
       videos,
       attributes,
+      wantFeatured,
     } = body
 
     if (!titleAr || !descriptionAr || !price || !categorySlug || !city) {
@@ -89,15 +95,27 @@ export async function POST(req: NextRequest) {
     })
 
 
-    // Update package counters + optional auto-feature
+    // عداد الباقة فقط — التمييز فقط لو البائع طلب صراحةً
     try {
-      const rec = await recordAdCreated(userId, ad.id)
-      if (rec.featured) ad.isFeatured = true
+      await recordAdCreated(userId, ad.id)
     } catch (e) {
       console.warn("recordAdCreated skip", e)
     }
 
-return NextResponse.json({ success: true, ad }, { status: 201 })
+    let featured = false
+    if (wantFeatured === true) {
+      try {
+        const fr = await featureAdExplicit(userId, ad.id)
+        featured = fr.ok === true
+      } catch (e) {
+        console.warn("featureAdExplicit skip", e)
+      }
+    }
+
+    return NextResponse.json(
+      { success: true, ad: { ...ad, isFeatured: featured } },
+      { status: 201 }
+    )
   } catch (error: any) {
     console.error("Create ad error:", error)
     return NextResponse.json(

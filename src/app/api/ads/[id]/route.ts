@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getSession } from "@/lib/session"
-import { resolveDbUserId } from "@/lib/packages"
+import {
+  resolveDbUserId,
+  featureAdExplicit,
+  unfeatureAdExplicit,
+} from "@/lib/packages"
 
 const db = prisma as any
 
@@ -56,6 +60,16 @@ export async function PATCH(
       data.status = body.status
     }
     if (typeof body.allowEscrow === "boolean") data.allowEscrow = body.allowEscrow
+
+    // تمييز / إلغاء تمييز صريح
+    if (body.isFeatured === true) {
+      const fr = await featureAdExplicit(userId, id)
+      if (!fr.ok) {
+        return NextResponse.json({ error: fr.error }, { status: 403 })
+      }
+    } else if (body.isFeatured === false) {
+      await unfeatureAdExplicit(userId, id)
+    }
     if (typeof body.titleAr === "string" && body.titleAr.trim()) {
       data.titleAr = body.titleAr.trim()
       data.titleEn = (body.titleEn || body.titleAr).trim()

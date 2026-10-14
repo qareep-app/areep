@@ -136,28 +136,20 @@ export async function activateUserPackage(userId: string, packageSlug: string) {
     },
   })
 
-  // Auto-feature newest ads up to featured quota
-  if (meta.featuredAds > 0) {
-    const ads = await db.ad
-      .findMany({
-        where: { userId, status: "ACTIVE" },
-        orderBy: { createdAt: "desc" },
-        take: meta.featuredAds,
-        select: { id: true },
-      })
-      .catch(() => [])
-
-    if (ads.length) {
-      await db.ad.updateMany({
-        where: { id: { in: ads.map((a: any) => a.id) } },
-        data: { isFeatured: true, featuredUntil: endDate },
-      })
-      await db.userPackage.update({
-        where: { id: up.id },
-        data: { featuredUsed: ads.length },
-      })
-    }
-  }
+  // لا تمييز تلقائي عند تفعيل الباقة — البائع يختار يدويًا
+  const featuredCount = await db.ad
+    .count({
+      where: {
+        userId,
+        isFeatured: true,
+        status: { in: ["ACTIVE", "PAUSED"] },
+      },
+    })
+    .catch(() => 0)
+  await db.userPackage.update({
+    where: { id: up.id },
+    data: { featuredUsed: featuredCount },
+  })
 
   return await db.userPackage.findUnique({
     where: { id: up.id },
@@ -283,12 +275,9 @@ export async function assertCanPostAd(userId: string) {
   return { ok: true as const, quota: q }
 }
 
-export async function recordAdCreated(userId: string, adId: string) {
+/** يحدّث عداد الإعلانات فقط — التمييز مش تلقائي */
+export async function recordAdCreated(userId: string, _adId?: string) {
   const up = await getActiveUserPackage(userId)
-  const maxAds = up.package?.maxAds ?? null
-  const featuredAds = up.package?.featuredAds ?? 0
-  const featuredUsed = up.featuredUsed ?? 0
-
   const adsUsed = await db.ad
     .count({ where: { userId, status: { in: ["ACTIVE", "PAUSED", "PENDING"] } } })
     .catch(() => (up.adsUsed ?? 0) + 1)
@@ -298,25 +287,67 @@ export async function recordAdCreated(userId: string, adId: string) {
     data: { adsUsed },
   })
 
-  // Auto feature if remaining and no overdue commission
+  return { featured: false, adsUsed, featuredUsed: up.featuredUsed ?? 0 }
+}
+
+/**
+ * تمييز إعلان صراحةً (اختيار البائع) — يخصم من حصة الباقة
+ */
+export async function featureAdExplicit(userId: string, adId: string) {
   const od = await assertNoOverdueCommissions(userId)
   if (!od.ok) {
-    return { featured: false, adsUsed, featuredUsed, blockedFeature: true }
+    return { ok: false as const, error: od.error || "عمولات متأخرة" }
   }
-  if (featuredAds > featuredUsed) {
-    const until = up.endDate || new Date(Date.now() + 30 * 864e5)
-    await db.ad.update({
-      where: { id: adId },
-      data: { isFeatured: true, featuredUntil: until },
+  const up = await getActiveUserPackage(userId)
+  const featuredAds = up.package?.featuredAds ?? 0
+  const realFeatured = await db.ad
+    .count({
+      where: {
+        userId,
+        isFeatured: true,
+        status: { in: ["ACTIVE", "PAUSED"] },
+      },
     })
-    await db.userPackage.update({
-      where: { id: up.id },
-      data: { featuredUsed: featuredUsed + 1 },
-    })
-    return { featured: true, adsUsed, featuredUsed: featuredUsed + 1 }
+    .catch(() => up.featuredUsed ?? 0)
+
+  if (featuredAds <= realFeatured) {
+    return { ok: false as const, error: "خلصت حصة الإعلانات المميزة في باقتك" }
   }
 
-  return { featured: false, adsUsed, featuredUsed }
+  const until = up.endDate || new Date(Date.now() + 30 * 864e5)
+  await db.ad.update({
+    where: { id: adId },
+    data: { isFeatured: true, featuredUntil: until },
+  })
+  await db.userPackage.update({
+    where: { id: up.id },
+    data: { featuredUsed: realFeatured + 1 },
+  })
+  return { ok: true as const, featuredUntil: until }
+}
+
+export async function unfeatureAdExplicit(userId: string, adId: string) {
+  await db.ad.update({
+    where: { id: adId },
+    data: { isFeatured: false, featuredUntil: null },
+  })
+  const realFeatured = await db.ad
+    .count({
+      where: {
+        userId,
+        isFeatured: true,
+        status: { in: ["ACTIVE", "PAUSED"] },
+      },
+    })
+    .catch(() => 0)
+  const up = await getActiveUserPackage(userId)
+  await db.userPackage
+    .update({
+      where: { id: up.id },
+      data: { featuredUsed: realFeatured },
+    })
+    .catch(() => {})
+  return { ok: true as const }
 }
 
 export function parsePackageOrderId(merchantOrderId: string): {

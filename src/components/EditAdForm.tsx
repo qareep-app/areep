@@ -56,6 +56,7 @@ export default function EditAdForm({ locale, adId }: Props) {
   const [images, setImages] = useState<string[]>([])
   const [videos, setVideos] = useState<string[]>([])
   const [hadBadVideo, setHadBadVideo] = useState(false)
+  const [isFeatured, setIsFeatured] = useState(false)
 
   useEffect(() => {
     fetch(`/api/ads/${adId}`, { credentials: "include" })
@@ -79,6 +80,7 @@ export default function EditAdForm({ locale, adId }: Props) {
         )
         setHadBadVideo(badVid)
         setVideos(vids.filter(isUsableMediaUrl))
+        setIsFeatured(Boolean(a.isFeatured))
       })
       .catch(() => setError("failed"))
       .finally(() => setLoading(false))
@@ -163,7 +165,8 @@ export default function EditAdForm({ locale, adId }: Props) {
           city,
           area: area || null,
           images,
-          videos, // فارغ = يمسح فيديو base64 القديم
+          videos,
+          isFeatured,
         }),
       })
       const data = await res.json()
@@ -205,6 +208,20 @@ export default function EditAdForm({ locale, adId }: Props) {
             : "An old base64 video was removed. Re-upload a video here (max 3MB)."}
         </div>
       )}
+
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <input
+          type="checkbox"
+          checked={isFeatured}
+          onChange={(e) => setIsFeatured(e.target.checked)}
+          className="w-4 h-4 rounded text-emerald-600"
+        />
+        <span>
+          {isRtl
+            ? "إعلان مميز (من حصة الباقة — مش تلقائي)"
+            : "Featured ad (uses package quota — not automatic)"}
+        </span>
+      </label>
 
       <div>
         <label className="text-sm font-medium">{isRtl ? "العنوان" : "Title"}</label>

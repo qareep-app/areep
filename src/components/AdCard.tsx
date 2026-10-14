@@ -1,3 +1,4 @@
+import Image from "next/image"
 "use client"
 
 import Link from "next/link"
@@ -72,8 +73,7 @@ export default function AdCard({
       >
         <div className="relative w-28 sm:w-36 h-24 sm:h-28 rounded-xl bg-gray-100 overflow-hidden shrink-0">
           {img ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt="" className="w-full h-full object-cover" />
+            <Image src={img} alt="" fill sizes="(max-width:768px) 40vw, 200px" className="object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
           )}
@@ -126,8 +126,7 @@ export default function AdCard({
     >
       <div className="relative aspect-[4/3] bg-gray-100">
         {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt="" className="w-full h-full object-cover" />
+          <Image src={img} alt="" fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>
         )}

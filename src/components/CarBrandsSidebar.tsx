@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import HomeSideFilters from "@/components/HomeSideFilters"
 
 interface Props {
@@ -77,11 +78,13 @@ export default function CarBrandsSidebar({ locale = "ar", limit = 9 }: Props) {
               className="group flex items-center justify-center h-24 rounded-xl bg-gray-50 border border-gray-100 hover:border-emerald-300 hover:bg-white transition p-2"
               title={b.name}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={b.logo}
                 alt={b.name}
-                className="max-h-16 max-w-full object-contain group-hover:scale-105 transition"
+                width={96}
+                height={64}
+                sizes="80px"
+                className="max-h-14 w-auto object-contain group-hover:scale-105 transition-transform"
               />
             </Link>
           ))}

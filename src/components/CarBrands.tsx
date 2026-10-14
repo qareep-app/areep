@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 
 interface Props {
   locale?: string
@@ -75,11 +76,13 @@ export default function CarBrands({ locale = "ar" }: Props) {
             title={b.name}
           >
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-gray-50 to-transparent" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={b.logo}
               alt={b.name}
-              className="relative z-10 max-h-10 sm:max-h-12 max-w-[85%] object-contain group-hover:scale-105 transition-transform duration-200"
+              width={120}
+              height={48}
+              sizes="(max-width: 640px) 64px, 96px"
+              className="relative z-10 h-10 sm:h-12 w-auto max-w-[85%] object-contain group-hover:scale-105 transition-transform duration-200"
             />
           </Link>
         ))}

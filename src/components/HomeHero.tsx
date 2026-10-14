@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { MapPin, Search } from "lucide-react"
 
 interface HomeHeroProps {
@@ -58,12 +59,13 @@ export default function HomeHero({ locale = "ar" }: HomeHeroProps) {
 
           <div className="relative order-1 md:order-2">
             <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-white bg-emerald-50">
-              {/* plain img avoids next/image hydration mismatch */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/hero-street.jpg"
                 alt={isRtl ? "دكانك قريب" : "Your shop is near"}
-                className="absolute inset-0 w-full h-full object-cover"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 600px"
+                className="object-cover"
               />
             </div>
           </div>

@@ -5,9 +5,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const nextConfig: NextConfig = {
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "**.amazonaws.com" },
       { protocol: "https", hostname: "**.r2.cloudflarestorage.com" },
+      { protocol: "https", hostname: "areep.vercel.app" },
+      { protocol: "https", hostname: "**.vercel.app" },
     ],
   },
   serverExternalPackages: ["@prisma/client", "prisma"],

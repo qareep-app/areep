@@ -1,6 +1,6 @@
-import Image from "next/image"
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { MapPin, Clock, User, Shield } from "lucide-react"
 

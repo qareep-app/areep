@@ -124,7 +124,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <body
+        className={`${cairo.className} min-h-full flex flex-col bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100`}
+      >
         {children}
       </body>
     </html>

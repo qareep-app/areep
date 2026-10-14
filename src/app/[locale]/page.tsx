@@ -17,7 +17,8 @@ type Props = {
   params: Promise<{ locale: string }>
 }
 
-export const dynamic = "force-dynamic"
+/** كاش خفيف 45 ثانية — أسرع من force-dynamic مع بيانات شبه فورية */
+export const revalidate = 45
 
 export default async function HomePage({ params }: Props) {
   const { locale } = await params
@@ -27,22 +28,38 @@ export default async function HomePage({ params }: Props) {
   let featured: any[] = []
   let ads: any[] = []
   try {
-    const include = {
-      user: { select: { id: true, name: true, phone: true } },
-      category: true,
+    const select = {
+      id: true,
+      titleAr: true,
+      titleEn: true,
+      price: true,
+      currency: true,
+      city: true,
+      area: true,
+      images: true,
+      condition: true,
+      status: true,
+      isFeatured: true,
+      allowEscrow: true,
+      createdAt: true,
+      attributes: true,
+      user: { select: { id: true, name: true } },
+      category: { select: { id: true, slug: true, nameAr: true, nameEn: true } },
     }
-    featured = await (prisma as any).ad.findMany({
-      where: { status: "ACTIVE", isFeatured: true },
-      orderBy: [{ featuredUntil: "desc" }, { createdAt: "desc" }],
-      take: 8,
-      include,
-    })
-    ads = await (prisma as any).ad.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { createdAt: "desc" },
-      take: 24,
-      include,
-    })
+    ;[featured, ads] = await Promise.all([
+      (prisma as any).ad.findMany({
+        where: { status: "ACTIVE", isFeatured: true },
+        orderBy: [{ featuredUntil: "desc" }, { createdAt: "desc" }],
+        take: 8,
+        select,
+      }),
+      (prisma as any).ad.findMany({
+        where: { status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select,
+      }),
+    ])
   } catch (e) {
     console.error("Home ads error:", e)
   }

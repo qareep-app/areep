@@ -54,12 +54,19 @@ export default function RealtimeChat({
 
   useEffect(() => {
     load()
-    // Fast poll fallback (2s) — replaced by Pusher when available
-    const t = setInterval(load, 2000)
+    let pollMs = 2500
+    let intervalId: ReturnType<typeof setInterval> | undefined
+    let pusherInstance: any = null
 
-    // Optional Pusher (CDN) when public key exists
     const key = process.env.NEXT_PUBLIC_PUSHER_KEY
     const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "eu"
+
+    const startPoll = (ms: number) => {
+      if (intervalId) clearInterval(intervalId)
+      intervalId = setInterval(load, ms)
+    }
+    startPoll(pollMs)
+
     if (key && conversationId && typeof window !== "undefined") {
       const script = document.createElement("script")
       script.src = "https://js.pusher.com/8.4.0/pusher.min.js"
@@ -68,8 +75,8 @@ export default function RealtimeChat({
         try {
           // @ts-ignore
           const Pusher = window.Pusher
-          const pusher = new Pusher(key, { cluster })
-          const ch = pusher.subscribe(`conversation-${conversationId}`)
+          pusherInstance = new Pusher(key, { cluster })
+          const ch = pusherInstance.subscribe(`conversation-${conversationId}`)
           ch.bind("new-message", (data: Msg) => {
             setMessages((prev) => {
               if (prev.some((m) => m.id === data.id)) return prev
@@ -78,6 +85,8 @@ export default function RealtimeChat({
             setOnline(true)
           })
           setOnline(true)
+          // مع Pusher نقلل الضغط: poll كل 12 ث احتياطي فقط
+          startPoll(12000)
         } catch {
           setOnline(false)
         }
@@ -85,7 +94,12 @@ export default function RealtimeChat({
       document.body.appendChild(script)
     }
 
-    return () => clearInterval(t)
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+      try {
+        pusherInstance?.disconnect?.()
+      } catch {}
+    }
   }, [conversationId])
 
   useEffect(() => {

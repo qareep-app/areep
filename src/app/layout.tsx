@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Cairo } from "next/font/google"
 import "./globals.css"
+import VisitorBeacon from "@/components/VisitorBeacon"
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -128,6 +129,8 @@ export default function RootLayout({
         className={`${cairo.className} min-h-full flex flex-col bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100`}
       >
         {children}
+        {/* عداد زوار — بدون UI */}
+        <VisitorBeacon />
       </body>
     </html>
   )

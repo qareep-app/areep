@@ -107,6 +107,22 @@ export default function MyAdsList({ locale }: MyAdsListProps) {
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${st.cls}`}>
                     {isRtl ? st.ar : st.en}
                   </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Link
+                      href={`/${locale}/ads/${ad.id}/edit`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100"
+                      title={isRtl ? "تعديل" : "Edit"}
+                    >
+                      <Pencil size={14} />
+                      {isRtl ? "تعديل" : "Edit"}
+                    </Link>
+                    <Link
+                      href={`/${locale}/ads/${ad.id}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-medium hover:bg-gray-50"
+                    >
+                      <Eye size={14} />
+                    </Link>
+                  </div>
                 </div>
               )
             })}

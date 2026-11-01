@@ -398,6 +398,26 @@ model UserPackage {
   @@index([endDate])
 }
 
+
+// ====================== MANUAL PACKAGE PAYMENTS ======================
+model ManualPaymentRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  packageSlug String
+  amount      Decimal  @db.Decimal(10, 2)
+  method      String   // instapay | vodafone
+  reference   String?  // رقم العملية من المستخدم
+  note        String?
+  status      String   @default("PENDING") // PENDING | PAID | REJECTED
+  createdAt   DateTime @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+}
+
 // ====================== REVIEWS ======================
 model Review {
   id         String   @id @default(cuid())

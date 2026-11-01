@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Check, Loader2, Sparkles, Package } from "lucide-react"
 
 interface PackagesListProps {
@@ -74,6 +75,10 @@ export default function PackagesList({ locale }: PackagesListProps) {
     loadQuota()
   }, [])
 
+  const goManual = (packageId: string) => {
+    window.location.href = `/${locale}/dashboard/packages/pay-manual?pkg=${packageId}`
+  }
+
   const subscribe = async (packageId: string, price: number) => {
     setMsg("")
     setBusy(packageId)
@@ -111,11 +116,28 @@ export default function PackagesList({ locale }: PackagesListProps) {
       }
       throw new Error(data.error || "لا يوجد رابط دفع")
     } catch (e: any) {
-      setMsg(e.message || "error")
+      const m = e.message || "error"
+      setMsg(
+        m +
+          (isRtl
+            ? " — يمكنك الدفع اليدوي بإنستاباي/فودافون كاش"
+            : " — try manual InstaPay/Vodafone payment")
+      )
+      // توجيه اختياري للدفع اليدوي
+      if (packageId && packageId !== "free") {
+        setTimeout(() => {
+          if (confirm(isRtl ? "فتح صفحة الدفع اليدوي؟" : "Open manual payment?")) {
+            goManual(packageId)
+          }
+        }, 300)
+      }
     } finally {
       setBusy(null)
     }
   }
+
+  // placeholder so goManual exists before if hoisted issues - already defined above
+  void 0
 
   const currentSlug = quota?.slug || "free"
 
@@ -130,6 +152,11 @@ export default function PackagesList({ locale }: PackagesListProps) {
             ? "اختر باقة مناسبة لعرض إعلاناتك وتمييزها"
             : "Choose a plan to post and feature your ads"}
         </p>
+        <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+          {isRtl
+            ? "الدفع الأونلاين قد يكون في وضع اختبار — تقدر تدفع بإنستاباي أو فودافون كاش وتفعيل يدوي من الأدمن."
+            : "Online gateway may be in test mode — you can pay via InstaPay / Vodafone Cash for manual activation."}
+        </div>
       </div>
 
       {/* Current quota card */}
@@ -245,6 +272,17 @@ export default function PackagesList({ locale }: PackagesListProps) {
                   isRtl ? "اشترك الآن" : "Subscribe"
                 )}
               </button>
+              {pkg.price > 0 && !isCurrent && (
+                <button
+                  type="button"
+                  onClick={() => goManual(pkg.id)}
+                  className="mt-2 w-full h-10 rounded-xl text-xs font-semibold border border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                >
+                  {isRtl
+                    ? "دفع بإنستاباي / فودافون كاش"
+                    : "Pay InstaPay / Vodafone Cash"}
+                </button>
+              )}
             </div>
           )
         })}
@@ -252,8 +290,8 @@ export default function PackagesList({ locale }: PackagesListProps) {
 
       <p className="text-xs text-gray-400">
         {isRtl
-          ? "طرق الدفع تعتمد على تكاملات Paymob المفعّلة في حساب التاجر (بطاقات، محافظ، فوري…)."
-          : "Payment methods depend on integrations enabled on your Paymob merchant account."}
+          ? "يمكنك الدفع أونلاين (عند تفعيل البوابة) أو بإنستاباي/فودافون كاش مع تفعيل يدوي من الإدارة."
+          : "Pay online when the gateway is live, or via InstaPay/Vodafone Cash with admin activation."}
       </p>
     </div>
   )

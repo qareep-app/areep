@@ -11,7 +11,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 import { prisma } from "@/lib/prisma"
 import AdCard from "@/components/AdCard"
-import { Sparkles } from "lucide-react"
+import FeaturedPromoStrip from "@/components/FeaturedPromoStrip"
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -48,13 +48,20 @@ export default async function HomePage({ params }: Props) {
     }
     ;[featured, ads] = await Promise.all([
       (prisma as any).ad.findMany({
-        where: { status: "ACTIVE", isFeatured: true },
+        where: {
+          status: "ACTIVE",
+          isFeatured: true,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
         orderBy: [{ featuredUntil: "desc" }, { createdAt: "desc" }],
-        take: 6,
+        take: 12,
         select,
       }),
       (prisma as any).ad.findMany({
-        where: { status: "ACTIVE" },
+        where: {
+          status: "ACTIVE",
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
         orderBy: { createdAt: "desc" },
         take: 12,
         select,
@@ -91,6 +98,7 @@ export default async function HomePage({ params }: Props) {
     <div className="min-h-screen flex flex-col bg-white" dir={isRtl ? "rtl" : "ltr"}>
       <Header locale={locale} />
       <CategoryBar locale={locale} />
+      <FeaturedPromoStrip locale={locale} ads={featured} />
 
       <main className="flex-1">
         <HomeHero locale={locale} />
@@ -106,24 +114,7 @@ export default async function HomePage({ params }: Props) {
             </div>
 
             <div className="order-2 min-w-0 space-y-8">
-              {featured.length > 0 && (
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                      <Sparkles className="text-amber-500" size={18} />
-                      {isRtl ? "إعلانات مميزة" : "Featured"}
-                    </h2>
-                    <Link href={`/${locale}/ads`} className="text-sm text-emerald-600 font-medium">
-                      {isRtl ? "المزيد" : "More"}
-                    </Link>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {featured.map((ad) => (
-                      <AdCard key={ad.id} ad={ad} locale={locale} layout="grid" />
-                    ))}
-                  </div>
-                </section>
-              )}
+              
 
               <section>
                 <div className="flex items-center justify-between mb-4">

@@ -89,13 +89,21 @@ export default function AdDetail({ locale, adId }: AdDetailProps) {
             {isRtl ? ad.titleAr : ad.titleEn || ad.titleAr}
           </h1>
           {isOwner && (
-            <Link
-              href={`/${locale}/ads/${ad.id}/edit`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100"
-            >
-              <Pencil size={16} />
-              {isRtl ? "تعديل الإعلان" : "Edit ad"}
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/${locale}/ads/${ad.id}/edit`}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 shadow-sm"
+              >
+                <Pencil size={16} />
+                {isRtl ? "تعديل الإعلان" : "Edit ad"}
+              </Link>
+              <Link
+                href={`/${locale}/dashboard/ads`}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold hover:bg-gray-50"
+              >
+                {isRtl ? "إدارة إعلاناتي" : "My ads"}
+              </Link>
+            </div>
           )}
         </div>
 

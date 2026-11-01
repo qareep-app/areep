@@ -56,10 +56,16 @@ export async function PATCH(
     const body = await req.json().catch(() => ({}))
     const data: any = {}
 
-    if (body.status && ["ACTIVE", "PAUSED", "SOLD", "PENDING"].includes(body.status)) {
+    if (body.status && ["ACTIVE", "PAUSED", "SOLD", "PENDING", "EXPIRED"].includes(body.status)) {
       data.status = body.status
     }
     if (typeof body.allowEscrow === "boolean") data.allowEscrow = body.allowEscrow
+
+    // تجديد 30 يوم
+    if (body.action === "renew") {
+      data.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      data.status = "ACTIVE"
+    }
 
     // تمييز / إلغاء تمييز صريح
     if (body.isFeatured === true) {

@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
         attributes: attributes || null,
         categoryId: category.id,
         userId,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
       include: {
         category: true,
@@ -176,7 +177,10 @@ export async function GET(req: NextRequest) {
           ? ownerPhone
             ? { OR: [{ userId: ownerUserId! }, { user: { phone: ownerPhone } }] }
             : { userId: ownerUserId! }
-          : { status: "ACTIVE" }),
+          : {
+              status: "ACTIVE",
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            }),
         ...(category ? { category: { slug: category } } : {}),
         ...(condition ? { condition } : {}),
         ...(city ? { city: { contains: city, mode: "insensitive" } } : {}),

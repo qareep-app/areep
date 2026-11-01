@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { getCompanyInfo } from "@/lib/company-info"
 
 interface FooterProps {
   locale?: string
@@ -7,6 +8,7 @@ interface FooterProps {
 export default function Footer({ locale = "ar" }: FooterProps) {
   const isRtl = locale === "ar"
   const year = new Date().getFullYear()
+  const company = getCompanyInfo()
 
   // Placeholder store links — replace when apps are published
   const playUrl = "https://play.google.com/store/apps"
@@ -103,6 +105,40 @@ export default function Footer({ locale = "ar" }: FooterProps) {
               <li><Link href={`/${locale}/how-it-works`} className="hover:text-emerald-600">{isRtl ? "كيف يعمل؟" : "How it works"}</Link></li>
             </ul>
           </div>
+        </div>
+
+        {/* بيانات الشركة — ظاهرة لمراجعات بوابات الدفع (XPay / CBE) */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 mb-6 text-sm text-gray-700">
+          <h4 className="font-bold text-gray-900 mb-3 text-sm">
+            {isRtl ? "بيانات الشركة والتواصل" : "Company & contact details"}
+          </h4>
+          <ul className="space-y-2">
+            <li>
+              <span className="text-gray-500">{isRtl ? "الاسم: " : "Name: "}</span>
+              <strong>{isRtl ? company.nameAr : company.nameEn}</strong>
+            </li>
+            <li>
+              <span className="text-gray-500">{isRtl ? "العنوان (مصر): " : "Address (Egypt): "}</span>
+              <span>{isRtl ? company.addressAr : company.addressEn}</span>
+            </li>
+            <li>
+              <span className="text-gray-500">{isRtl ? "الهاتف: " : "Phone: "}</span>
+              <a href={`tel:${company.phone.replace(/\s/g, "")}`} className="text-emerald-700 font-semibold" dir="ltr">
+                {company.phoneDisplay}
+              </a>
+            </li>
+            <li>
+              <span className="text-gray-500">{isRtl ? "البريد: " : "Email: "}</span>
+              <a href={`mailto:${company.email}`} className="text-emerald-700 font-semibold">
+                {company.email}
+              </a>
+            </li>
+            <li>
+              <Link href={`/${locale}/contact`} className="text-emerald-700 font-medium hover:underline">
+                {isRtl ? "صفحة اتصل بنا ←" : "Contact page →"}
+              </Link>
+            </li>
+          </ul>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
